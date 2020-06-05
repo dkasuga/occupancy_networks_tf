@@ -9,6 +9,8 @@ import matplotlib; matplotlib.use('Agg')
 from im2mesh import config, data
 from im2mesh.checkpoints import CheckpointIO
 
+import tensorflow as tf
+
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -22,8 +24,11 @@ parser.add_argument('--exit-after', type=int, default=-1,
 
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
-is_cuda = (torch.cuda.is_available() and not args.no_cuda)
-device = torch.device("cuda" if is_cuda else "cpu")
+
+
+'''not necessary'''
+# is_cuda = (torch.cuda.is_available() and not args.no_cuda)
+# device = torch.device("cuda" if is_cuda else "cpu")
 
 # Set t0
 t0 = time.time()
@@ -48,6 +53,7 @@ if not os.path.exists(out_dir):
     os.makedirs(out_dir)
 
 # Dataset
+# specify path
 train_dataset = config.get_dataset('train', cfg)
 val_dataset = config.get_dataset('val', cfg)
 
