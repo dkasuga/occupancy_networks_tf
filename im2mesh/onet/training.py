@@ -88,7 +88,7 @@ class Trainer(BaseTrainer):
 
         occ_iou_np = (occ_iou >= 0.5).numpy()
         occ_iou_hat_np = (p_out.probs >= threshold).numpy()
-        iou = tf.reduce_mean(compute_iou(occ_iou_np, occ_iou_hat_np))
+        iou = compute_iou(occ_iou_np, occ_iou_hat_np).mean()
         eval_dict["iou"] = float(iou)
 
         # Estimate voxel iou
@@ -96,12 +96,15 @@ class Trainer(BaseTrainer):
             points_voxels = make_3d_grid(
                 (-0.5 + 1 / 64,) * 3, (0.5 - 1 / 64,) * 3, (32,) * 3
             )
-            points_voxels = points_voxels.expand(batch_size, *points_voxels.size())
+            points_voxels = tf.broadcast_to(
+                points_voxels, [batch_size, *points_voxels.shape]
+            )
+
             p_out = self.model(points_voxels, inputs, sample=self.eval_sample, **kwargs)
 
             voxels_occ_np = (voxels_occ >= 0.5).numpy()
             occ_hat_np = (p_out.probs >= threshold).numpy()
-            iou_voxels = tf.reduce_mean(compute_iou(voxels_occ_np, occ_hat_np))
+            iou_voxels = compute_iou(voxels_occ_np, occ_hat_np).mean()
 
             eval_dict["iou_voxels"] = float(iou_voxels)
 
@@ -157,11 +160,9 @@ class Trainer(BaseTrainer):
         z = eps * tf.exp(logvar * 0.5) + mean
 
         # KL-divergence
-        kl = dist.kl_divergence(q_z, self.model.p0_z).sum(dim=-1)
         kl = tf.reduce_sum(
             tfp.distributions.kl_divergence(q_z, self.model.p0_z), axis=-1
         )
-
         loss = tf.reduce_mean(kl)
 
         # General points
