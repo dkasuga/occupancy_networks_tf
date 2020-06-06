@@ -1,8 +1,5 @@
 import os
 from tqdm import trange
-import torch
-from torch.nn import functional as F
-from torch import distributions as dist
 from im2mesh.common import compute_iou, make_3d_grid
 from im2mesh.utils import visualize as vis
 from im2mesh.training import BaseTrainer
@@ -23,14 +20,15 @@ class Trainer(BaseTrainer):
         eval_sample (bool): whether to evaluate samples
 
     """
+
     def __init__(
-            self,
-            model,
-            optimizer,
-            input_type="img",
-            vis_dir=None,
-            threshold=0.5,
-            eval_sample=False,
+        self,
+        model,
+        optimizer,
+        input_type="img",
+        vis_dir=None,
+        threshold=0.5,
+        eval_sample=False,
     ):
         self.model = model
         self.optimizer = optimizer
@@ -52,8 +50,7 @@ class Trainer(BaseTrainer):
             loss = self.compute_loss(data, training=True)
 
         grads = tape.gradient(loss, self.model.trainable_weights)
-        self.optimizer.apply_gradients(zip(grads,
-                                           self.model.trainable_weights))
+        self.optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
 
         return loss
 
@@ -87,10 +84,7 @@ class Trainer(BaseTrainer):
         # Compute iou
         batch_size = points.shape[0]
 
-        p_out = self.model(points_iou,
-                           inputs,
-                           sample=self.eval_sample,
-                           **kwargs)
+        p_out = self.model(points_iou, inputs, sample=self.eval_sample, **kwargs)
 
         occ_iou_np = (occ_iou >= 0.5).numpy()
         occ_iou_hat_np = (p_out.probs >= threshold).numpy()
@@ -99,14 +93,11 @@ class Trainer(BaseTrainer):
 
         # Estimate voxel iou
         if voxels_occ is not None:
-            points_voxels = make_3d_grid((-0.5 + 1 / 64, ) * 3,
-                                         (0.5 - 1 / 64, ) * 3, (32, ) * 3)
-            points_voxels = points_voxels.expand(batch_size,
-                                                 *points_voxels.size())
-            p_out = self.model(points_voxels,
-                               inputs,
-                               sample=self.eval_sample,
-                               **kwargs)
+            points_voxels = make_3d_grid(
+                (-0.5 + 1 / 64,) * 3, (0.5 - 1 / 64,) * 3, (32,) * 3
+            )
+            points_voxels = points_voxels.expand(batch_size, *points_voxels.size())
+            p_out = self.model(points_voxels, inputs, sample=self.eval_sample, **kwargs)
 
             voxels_occ_np = (voxels_occ >= 0.5).numpy()
             occ_hat_np = (p_out.probs >= threshold).numpy()
@@ -138,10 +129,10 @@ class Trainer(BaseTrainer):
 
         for i in range(batch_size):
             input_img_path = os.path.join(self.vis_dir, "%03d_in.png" % i)
-            vis.visualize_data(inputs[i], self.input_type,
-                               input_img_path)
-            vis.visualize_voxels(voxels_out[i],
-                                 os.path.join(self.vis_dir, "%03d.png" % i))
+            vis.visualize_data(inputs[i], self.input_type, input_img_path)
+            vis.visualize_voxels(
+                voxels_out[i], os.path.join(self.vis_dir, "%03d.png" % i)
+            )
 
     def compute_loss(self, data):
         """ Computes the loss.
@@ -167,8 +158,9 @@ class Trainer(BaseTrainer):
 
         # KL-divergence
         kl = dist.kl_divergence(q_z, self.model.p0_z).sum(dim=-1)
-        kl = tf.reduce_sum(tfp.distributions.kl_divergence(
-            q_z, self.model.p0_z), axis=-1)
+        kl = tf.reduce_sum(
+            tfp.distributions.kl_divergence(q_z, self.model.p0_z), axis=-1
+        )
 
         loss = tf.reduce_mean(kl)
 
