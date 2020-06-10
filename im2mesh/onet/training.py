@@ -1,11 +1,12 @@
+# Copyright 2020 The TensorFlow Authors
+import tensorflow as tf
+import tensorflow_probability as tfp
+
 import os
 from tqdm import trange
 from im2mesh.common import compute_iou, make_3d_grid
 from im2mesh.utils import visualize as vis
 from im2mesh.training import BaseTrainer
-
-import tensorflow as tf
-import tensorflow_probability as tfp
 
 
 class Trainer(BaseTrainer):
@@ -50,7 +51,8 @@ class Trainer(BaseTrainer):
             loss = self.compute_loss(data, training=True)
 
         grads = tape.gradient(loss, self.model.trainable_weights)
-        self.optimizer.apply_gradients(zip(grads, self.model.trainable_weights))
+        self.optimizer.apply_gradients(
+            zip(grads, self.model.trainable_weights))
 
         return loss
 
@@ -75,7 +77,8 @@ class Trainer(BaseTrainer):
 
         kwargs = {}
 
-        elbo, rec_error, kl = self.model.compute_elbo(points, occ, inputs, **kwargs)
+        elbo, rec_error, kl = self.model.compute_elbo(
+            points, occ, inputs, **kwargs)
 
         eval_dict["loss"] = -float(tf.reduce_mean(elbo))
         eval_dict["rec_error"] = float(tf.reduce_mean(rec_error))
@@ -84,7 +87,8 @@ class Trainer(BaseTrainer):
         # Compute iou
         batch_size = points.shape[0]
 
-        p_out = self.model(points_iou, inputs, sample=self.eval_sample, **kwargs)
+        p_out = self.model(points_iou, inputs,
+                           sample=self.eval_sample, **kwargs)
 
         occ_iou_np = (occ_iou >= 0.5).numpy()
         occ_iou_hat_np = (p_out.probs >= threshold).numpy()
@@ -100,7 +104,8 @@ class Trainer(BaseTrainer):
                 points_voxels, [batch_size, *points_voxels.shape]
             )
 
-            p_out = self.model(points_voxels, inputs, sample=self.eval_sample, **kwargs)
+            p_out = self.model(points_voxels, inputs,
+                               sample=self.eval_sample, **kwargs)
 
             voxels_occ_np = (voxels_occ >= 0.5).numpy()
             occ_hat_np = (p_out.probs >= threshold).numpy()
@@ -130,7 +135,7 @@ class Trainer(BaseTrainer):
         occ_hat = tf.reshape(p_r.probs, [batch_size, *shape])
         voxels_out = (occ_hat >= self.threshold).numpy()
 
-        for i in range(batch_size):
+        for i in trange(batch_size):
             input_img_path = os.path.join(self.vis_dir, "%03d_in.png" % i)
             vis.visualize_data(inputs[i], self.input_type, input_img_path)
             vis.visualize_voxels(
