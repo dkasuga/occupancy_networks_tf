@@ -1,7 +1,7 @@
+# Copyright 2020 The TensorFlow Authors
+
 import tensorflow as tf
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
 from im2mesh.layers import ResnetBlockFC, AffineLayer
 
 

@@ -1,6 +1,4 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+# Copyright 2020 The TensorFlow Authors
 
 import tensorflow as tf
 
@@ -54,12 +52,14 @@ class Encoder(tf.keras.Model):
             net = net + tf.expand_dims(self.fc_c(c), 1)
 
         net = self.fc_1(self.actvn(net))
-        pooled = tf.broadcast_to(self.pool(net, axis=1, keepdims=True), net.shape)
+        pooled = tf.broadcast_to(
+            self.pool(net, axis=1, keepdims=True), net.shape)
 
         net = tf.concat([net, pooled], axis=2)
 
         net = self.fc_2(self.actvn(net))
-        pooled = tf.broadcast_to(self.pool(net, axis=1, keepdims=True), net.shape)
+        pooled = tf.broadcast_to(
+            self.pool(net, axis=1, keepdims=True), net.shape)
         net = tf.concat([net, pooled], axis=2)
 
         net = self.fc_3(self.actvn(net))

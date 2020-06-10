@@ -1,9 +1,9 @@
-import torch.nn as nn
-import torch.nn.functional as F
-from im2mesh.layers import (ResnetBlockFC, CResnetBlockConv1d, CBatchNorm1d,
-                            CBatchNorm1d_legacy, ResnetBlockConv1d)
+# Copyright 2020 The TensorFlow Authors
 
 import tensorflow as tf
+
+from im2mesh.layers import (ResnetBlockFC, CResnetBlockConv1d,
+                            CBatchNorm1d, CBatchNorm1d_legacy, ResnetBlockConv1d)
 
 
 class Decoder(tf.keras.Model):
@@ -18,6 +18,7 @@ class Decoder(tf.keras.Model):
         hidden_size (int): hidden size of Decoder network
         leaky (bool): whether to use leaky ReLUs
     '''
+
     def __init__(self,
                  dim=3,
                  z_dim=128,
@@ -86,6 +87,7 @@ class DecoderCBatchNorm(tf.keras.Model):
         leaky (bool): whether to use leaky ReLUs
         legacy (bool): whether to use the legacy structure
     '''
+
     def __init__(self,
                  dim=3,
                  z_dim=128,
@@ -155,6 +157,7 @@ class DecoderCBatchNorm2(tf.keras.Model):
         leaky (bool): whether to use leaky ReLUs
         n_blocks (int): number of ResNet blocks
     '''
+
     def __init__(self, dim=3, z_dim=0, c_dim=128, hidden_size=256, n_blocks=5):
         super().__init__()
         self.z_dim = z_dim
@@ -164,7 +167,7 @@ class DecoderCBatchNorm2(tf.keras.Model):
         self.conv_p = tf.keras.layers.Conv1D(hidden_size, 1)
         self.blocks = [
             CResnetBlockConv1d(c_dim, hidden_size) for i in range(n_blocks)
-        ]  #CHECK nn.ModuleList -> List
+        ]  # CHECK nn.ModuleList -> List
 
         self.bn = CBatchNorm1d(hidden_size)
         self.conv_net = tf.keras.layers.Conv1D(1, 1)
@@ -197,6 +200,7 @@ class DecoderCBatchNormNoResnet(tf.keras.Model):
         hidden_size (int): hidden size of Decoder network
         leaky (bool): whether to use leaky ReLUs
     '''
+
     def __init__(self,
                  dim=3,
                  z_dim=128,
@@ -222,7 +226,7 @@ class DecoderCBatchNormNoResnet(tf.keras.Model):
         self.bn_4 = CBatchNorm1d(hidden_size)
         self.bn_5 = CBatchNorm1d(hidden_size)
 
-        self.fc_out = nn.Conv1d(hidden_size, 1, 1)
+        self.fc_out = tf.keras.layers.Dense(1, 1)
 
         if not leaky:
             self.actvn = tf.keras.layers.ReLU()
@@ -265,6 +269,7 @@ class DecoderBatchNorm(tf.keras.Model):
         hidden_size (int): hidden size of Decoder network
         leaky (bool): whether to use leaky ReLUs
     '''
+
     def __init__(self,
                  dim=3,
                  z_dim=128,

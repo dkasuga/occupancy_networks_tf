@@ -1,3 +1,5 @@
+# Copyright 2020 The TensorFlow Authors
+
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -23,11 +25,10 @@ class OccupancyNetwork(tf.keras.Model):
     """ Occupancy Network class.
 
     Args:
-        decoder (nn.Module): decoder network
-        encoder (nn.Module): encoder network
-        encoder_latent (nn.Module): latent encoder network
+        decoder (tf.keras.Model): decoder network
+        encoder (tf.keras.Model): encoder network
+        encoder_latent (tf.keras.Model): latent encoder network
         p0_z (dist): prior distribution for latent code z
-        device (device): torch device
     """
 
     def __init__(self, decoder, encoder=None, encoder_latent=None, p0_z=None):
@@ -85,7 +86,8 @@ class OccupancyNetwork(tf.keras.Model):
         # rec_error = -p_r.log_prob(occ).sum(dim=-1)  # todo log_prob
         rec_error = -tf.reduce_sum(p_r.log_prob(occ), axis=-1)  # todo log_prob
         # kl = dist.kl_divergence(q_z, self.p0_z).sum(dim=-1)
-        kl = tf.reduce_sum(tfp.distributions.kl_divergence(q_z, self.p0_z), axis=-1)
+        kl = tf.reduce_sum(
+            tfp.distributions.kl_divergence(q_z, self.p0_z), axis=-1)
         elbo = -rec_error - kl
 
         return elbo, rec_error, kl
