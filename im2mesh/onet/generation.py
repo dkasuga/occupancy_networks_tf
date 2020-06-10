@@ -1,6 +1,5 @@
-import torch
-import torch.optim as optim
-from torch import autograd
+# Copyright 2020 The TensorFlow Authors
+
 import numpy as np
 from tqdm import trange
 import trimesh
@@ -10,23 +9,24 @@ from im2mesh.utils.libsimplify import simplify_mesh
 from im2mesh.utils.libmise import MISE
 import time
 
+import tensorflow as tf
+
 
 class Generator3D(object):
     '''  Generator class for Occupancy Networks.
     It provides functions to generate the final mesh as well refining options.
     Args:
-        model (nn.Module): trained Occupancy Network model
+        model (tf.keras.layers.Model): trained Occupancy Network model
         points_batch_size (int): batch size for points evaluation
         threshold (float): threshold value
         refinement_step (int): number of refinement steps
-        device (device): pytorch device
         resolution0 (int): start resolution for MISE
         upsampling steps (int): number of upsampling steps
         with_normals (bool): whether normals should be estimated
         padding (float): how much padding should be used for MISE
         sample (bool): whether z should be sampled
         simplify_nfaces (int): number of faces the mesh should be simplified to
-        preprocessor (nn.Module): preprocessor for inputs
+        preprocessor (tf.keras.Models): preprocessor for inputs
     '''
 
     def __init__(self, model, points_batch_size=100000,
@@ -39,7 +39,6 @@ class Generator3D(object):
         self.points_batch_size = points_batch_size
         self.refinement_step = refinement_step
         self.threshold = threshold
-        self.device = device
         self.resolution0 = resolution0
         self.upsampling_steps = upsampling_steps
         self.with_normals = with_normals
@@ -54,27 +53,25 @@ class Generator3D(object):
             data (tensor): data tensor
             return_stats (bool): whether stats should be returned
         '''
-        self.model.eval()
-        device = self.device
+        # self.model.eval() // training= true
+        self.model.trainable = False  # TODO CHECK
         stats_dict = {}
 
-        inputs = data.get('inputs', torch.empty(1, 0)).to(device)
+        inputs = data.get('inputs', tf.zeros([1, 0]))
         kwargs = {}
 
         # Preprocess if requires
         if self.preprocessor is not None:
             t0 = time.time()
-            with torch.no_grad():
-                inputs = self.preprocessor(inputs)
+            inputs = self.preprocessor(inputs)
             stats_dict['time (preprocess)'] = time.time() - t0
 
         # Encode inputs
         t0 = time.time()
-        with torch.no_grad():
-            c = self.model.encode_inputs(inputs)
+        c = self.model.encode_inputs(inputs)
         stats_dict['time (encode inputs)'] = time.time() - t0
 
-        z = self.model.get_z_from_prior((1,), sample=self.sample).to(device)
+        z = self.model.get_z_from_prior((1,), sample=self.sample)
         mesh = self.generate_from_latent(z, c, stats_dict=stats_dict, **kwargs)
 
         if return_stats:
@@ -99,9 +96,9 @@ class Generator3D(object):
         if self.upsampling_steps == 0:
             nx = self.resolution0
             pointsf = box_size * make_3d_grid(
-                (-0.5,)*3, (0.5,)*3, (nx,)*3
+                (-0.5,) * 3, (0.5,) * 3, (nx,) * 3
             )
-            values = self.eval_points(pointsf, z, c, **kwargs).cpu().numpy()
+            values = self.eval_points(pointsf, z, c, **kwargs).numpy()
             value_grid = values.reshape(nx, nx, nx)
         else:
             mesh_extractor = MISE(
@@ -111,13 +108,13 @@ class Generator3D(object):
 
             while points.shape[0] != 0:
                 # Query points
-                pointsf = torch.FloatTensor(points).to(self.device)
+                pointsf = tf.convert_to_tensor(points)
                 # Normalize to bounding box
                 pointsf = pointsf / mesh_extractor.resolution
                 pointsf = box_size * (pointsf - 0.5)
                 # Evaluate model and update
                 values = self.eval_points(
-                    pointsf, z, c, **kwargs).cpu().numpy()
+                    pointsf, z, c, **kwargs).numpy()
                 values = values.astype(np.float64)
                 mesh_extractor.update(points, values)
                 points = mesh_extractor.query()
@@ -137,17 +134,16 @@ class Generator3D(object):
             z (tensor): latent code z
             c (tensor): latent conditioned code c
         '''
-        p_split = torch.split(p, self.points_batch_size)
+        p_split = tf.split(p, self.points_batch_size)
         occ_hats = []
 
         for pi in p_split:
-            pi = pi.unsqueeze(0).to(self.device)
-            with torch.no_grad():
-                occ_hat = self.model.decode(pi, z, c, **kwargs).logits
+            pi = tf.expand_dims(pi, 0)
+            occ_hat = self.model.decode(pi, z, c, **kwargs).logits
 
-            occ_hats.append(occ_hat.squeeze(0).detach().cpu())
+            occ_hats.append(tf.squeeze(occ_hat, 0))
 
-        occ_hat = torch.cat(occ_hats, dim=0)
+        occ_hat = tf.concat(occ_hats, axis=0)
 
         return occ_hat
 
@@ -220,21 +216,20 @@ class Generator3D(object):
             z (tensor): latent code z
             c (tensor): latent conditioned code c
         '''
-        device = self.device
-        vertices = torch.FloatTensor(vertices)
-        vertices_split = torch.split(vertices, self.points_batch_size)
+        vertices = tf.convert_to_tensor(vertices)
+        vertices_split = tf.split(vertices, self.points_batch_size)
 
         normals = []
-        z, c = z.unsqueeze(0), c.unsqueeze(0)
+        z, c = tf.expand_dims(z, axis=0), tf.expand_dims(c, axis=0)
         for vi in vertices_split:
-            vi = vi.unsqueeze(0).to(device)
+            vi = tf.expand_dims(vi, axis=0)
             vi.requires_grad_()
-            occ_hat = self.model.decode(vi, z, c).logits
-            out = occ_hat.sum()
-            out.backward()
-            ni = -vi.grad
-            ni = ni / torch.norm(ni, dim=-1, keepdim=True)
-            ni = ni.squeeze(0).cpu().numpy()
+            with tf.GradientTape() as tape:
+                occ_hat = self.model.decode(vi, z, c).logits
+                out = occ_hat.sum()
+            ni = -tape.gradient(out, vi)
+            ni = ni / tf.norm(ni, axis=-1, keepdims=True)
+            ni = tf.squeeze(tf, axis=0).numpy()
             normals.append(ni)
 
         normals = np.concatenate(normals, axis=0)
@@ -249,7 +244,7 @@ class Generator3D(object):
             c (tensor): latent conditioned code c
         '''
 
-        self.model.eval()
+        self.model.trainable = False  # TODO CHECK
 
         # Some shorthands
         n_x, n_y, n_z = occ_hat.shape
@@ -258,48 +253,50 @@ class Generator3D(object):
         threshold = self.threshold
 
         # Vertex parameter
-        v0 = torch.FloatTensor(mesh.vertices).to(self.device)
-        v = torch.nn.Parameter(v0.clone())
+        v = tf.convert_to_tensor(mesh.vertices)
 
         # Faces of mesh
-        faces = torch.LongTensor(mesh.faces).to(self.device)
+        faces = tf.convert_to_tensor(mesh.faces, dtype=tf.int64)
 
         # Start optimization
-        optimizer = optim.RMSprop([v], lr=1e-4)
+        optimizer = tf.keras.optimizers.RMSprop(learning_rate=1e-4)
 
         for it_r in trange(self.refinement_step):
-            optimizer.zero_grad()
+            with tf.GradientTape() as tape:
+                # Loss
+                face_vertex = v[faces]
+                eps = np.random.dirichlet((0.5, 0.5, 0.5), size=faces.shape[0])
+                eps = tf.convert_to_tensor(eps)
 
-            # Loss
-            face_vertex = v[faces]
-            eps = np.random.dirichlet((0.5, 0.5, 0.5), size=faces.shape[0])
-            eps = torch.FloatTensor(eps).to(self.device)
-            face_point = (face_vertex * eps[:, :, None]).sum(dim=1)
+                with tf.GradientTape() as tape2:
+                    face_point = tf.reduce_sum(
+                        face_vertex * eps[:, :, None], axis=1)
 
-            face_v1 = face_vertex[:, 1, :] - face_vertex[:, 0, :]
-            face_v2 = face_vertex[:, 2, :] - face_vertex[:, 1, :]
-            face_normal = torch.cross(face_v1, face_v2)
-            face_normal = face_normal / \
-                (face_normal.norm(dim=1, keepdim=True) + 1e-10)
-            face_value = torch.sigmoid(
-                self.model.decode(face_point.unsqueeze(0), z, c).logits
-            )
-            normal_target = -autograd.grad(
-                [face_value.sum()], [face_point], create_graph=True)[0]
+                    face_v1 = face_vertex[:, 1, :] - face_vertex[:, 0, :]
+                    face_v2 = face_vertex[:, 2, :] - face_vertex[:, 1, :]
+                    face_normal = tf.linalg.cross(face_v1, face_v2)
+                    face_normal = face_normal / \
+                        (tf.norm(
+                            face_normal.norm, axis=1, keepdims=True) + 1e-10)
+                    face_value = tf.math.sigmoid(self.model.decode(
+                        tf.expand_dims(face_point, axis=0), z, c).logits)
+                    face_value_sum = tf.reduce_sum(face_value, axis=0)
 
-            normal_target = \
-                normal_target / \
-                (normal_target.norm(dim=1, keepdim=True) + 1e-10)
-            loss_target = (face_value - threshold).pow(2).mean()
-            loss_normal = \
-                (face_normal - normal_target).pow(2).sum(dim=1).mean()
+                normal_target = -tape2.gradient(face_value_sum, face_point)[0]
+                normal_target = normal_target / \
+                    (tf.norm(normal_target, axis=1, keepdims=True) + 1e-10)
 
-            loss = loss_target + 0.01 * loss_normal
+                loss_target = tf.reduce_mean(
+                    tf.math(face_value - threshold, 2))
+                loss_normal = tf.reduce_mean(tf.reduce_sum(
+                    tf.math.pow(face_normal - normal_target, 2), axis=1))
+
+                loss = loss_target + 0.01 * loss_normal
 
             # Update
-            loss.backward()
-            optimizer.step()
+            grad = tape.gradient(loss, v)
+            optimizer.apply_gradients(zip(grad, v))
 
-        mesh.vertices = v.data.cpu().numpy()
+        mesh.vertices = v.data.numpy()
 
         return mesh
