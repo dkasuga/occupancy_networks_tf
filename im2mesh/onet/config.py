@@ -1,9 +1,4 @@
 # Copyright 2020 The TensorFlow Authors
-
-import torch
-import torch.distributions as dist
-from torch import nn
-
 import tensorflow as tf
 import tensorflow_probability as tfp
 

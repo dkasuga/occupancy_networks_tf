@@ -1,4 +1,5 @@
 # Copyright 2020 The TensorFlow Authors
+import tensorflow as tf
 
 import numpy as np
 from tqdm import trange
@@ -8,8 +9,6 @@ from im2mesh.common import make_3d_grid
 from im2mesh.utils.libsimplify import simplify_mesh
 from im2mesh.utils.libmise import MISE
 import time
-
-import tensorflow as tf
 
 
 class Generator3D(object):
