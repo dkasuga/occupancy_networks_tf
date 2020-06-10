@@ -1,6 +1,12 @@
+# Copyright 2020 The TensorFlow Authors
+
 import torch
 import torch.distributions as dist
 from torch import nn
+
+import tensorflow as tf
+import tensorflow_probability as tfp
+
 import os
 from im2mesh.encoder import encoder_dict
 from im2mesh.onet import models, training, generation
@@ -8,11 +14,10 @@ from im2mesh import data
 from im2mesh import config
 
 
-def get_model(cfg, device=None, dataset=None, **kwargs):
+def get_model(cfg, dataset=None, **kwargs):
     ''' Return the Occupancy Network model.
     Args:
         cfg (dict): imported yaml config
-        device (device): pytorch device
         dataset (dataset): dataset
     '''
     decoder = cfg['model']['decoder']
@@ -39,7 +44,7 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
         encoder_latent = None
 
     if encoder == 'idx':
-        encoder = nn.Embedding(len(dataset), c_dim)
+        encoder = tf.keras.layers.Embedding(len(dataset), c_dim)
     elif encoder is not None:
         encoder = encoder_dict[encoder](
             c_dim=c_dim,
@@ -48,21 +53,20 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     else:
         encoder = None
 
-    p0_z = get_prior_z(cfg, device)
+    p0_z = get_prior_z(cfg)
     model = models.OccupancyNetwork(
-        decoder, encoder, encoder_latent, p0_z, device=device
+        decoder, encoder, encoder_latent, p0_z
     )
 
     return model
 
 
-def get_trainer(model, optimizer, cfg, device, **kwargs):
+def get_trainer(model, optimizer, cfg, **kwargs):
     ''' Returns the trainer object.
     Args:
-        model (nn.Module): the Occupancy Network model
+        model (tf.keras.Model): the Occupancy Network model
         optimizer (optimizer): pytorch optimizer object
         cfg (dict): imported yaml config
-        device (device): pytorch device
     '''
     threshold = cfg['test']['threshold']
     out_dir = cfg['training']['out_dir']
@@ -71,7 +75,7 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
 
     trainer = training.Trainer(
         model, optimizer,
-        device=device, input_type=input_type,
+        input_type=input_type,
         vis_dir=vis_dir, threshold=threshold,
         eval_sample=cfg['training']['eval_sample'],
     )
@@ -79,18 +83,16 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
     return trainer
 
 
-def get_generator(model, cfg, device, **kwargs):
+def get_generator(model, cfg, **kwargs):
     ''' Returns the generator object.
     Args:
-        model (nn.Module): Occupancy Network model
+        model (tf.keras.Model): Occupancy Network model
         cfg (dict): imported yaml config
-        device (device): pytorch device
     '''
-    preprocessor = config.get_preprocessor(cfg, device=device)
+    preprocessor = config.get_preprocessor(cfg)
 
     generator = generation.Generator3D(
         model,
-        device=device,
         threshold=cfg['test']['threshold'],
         resolution0=cfg['generation']['resolution_0'],
         upsampling_steps=cfg['generation']['upsampling_steps'],
@@ -102,17 +104,14 @@ def get_generator(model, cfg, device, **kwargs):
     return generator
 
 
-def get_prior_z(cfg, device, **kwargs):
+def get_prior_z(cfg, **kwargs):
     ''' Returns prior distribution for latent code z.
     Args:
         cfg (dict): imported yaml config
-        device (device): pytorch device
     '''
     z_dim = cfg['model']['z_dim']
-    p0_z = dist.Normal(
-        torch.zeros(z_dim, device=device),
-        torch.ones(z_dim, device=device)
-    )
+    p0_z = tfp.distributions.Normal(
+        tf.zeros(z_dim), tf.ones(z_dim))
 
     return p0_z
 
