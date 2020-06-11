@@ -1,3 +1,7 @@
+from im2mesh.checkpoints import CheckpointIO
+from im2mesh import config, data
+import tensorflow as tf
+
 import torch
 import torch.optim as optim
 from tensorboardX import SummaryWriter
@@ -5,11 +9,8 @@ import numpy as np
 import os
 import argparse
 import time
-import matplotlib; matplotlib.use('Agg')
-from im2mesh import config, data
-from im2mesh.checkpoints import CheckpointIO
-
-import tensorflow as tf
+import matplotlib
+matplotlib.use('Agg')
 
 
 # Arguments
@@ -24,11 +25,6 @@ parser.add_argument('--exit-after', type=int, default=-1,
 
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
-
-
-'''not necessary'''
-# is_cuda = (torch.cuda.is_available() and not args.no_cuda)
-# device = torch.device("cuda" if is_cuda else "cpu")
 
 # Set t0
 t0 = time.time()
@@ -57,6 +53,7 @@ if not os.path.exists(out_dir):
 train_dataset = config.get_dataset('train', cfg)
 val_dataset = config.get_dataset('val', cfg)
 
+# TODO
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, num_workers=4, shuffle=True,
     collate_fn=data.collate_remove_none,
@@ -76,17 +73,17 @@ vis_loader = torch.utils.data.DataLoader(
 data_vis = next(iter(vis_loader))
 
 # Model
-model = config.get_model(cfg, device=device, dataset=train_dataset)
+model = config.get_model(cfg, dataset=train_dataset)
 
 # Intialize training
 npoints = 1000
-optimizer = optim.Adam(model.parameters(), lr=1e-4)
+optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
 # optimizer = optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
-trainer = config.get_trainer(model, optimizer, cfg, device=device)
+trainer = config.get_trainer(model, optimizer, cfg)
 
-checkpoint_io = CheckpointIO(out_dir, model=model, optimizer=optimizer)
+checkpoint_io = CheckpointIO(out_dir, model=model)
 try:
-    load_dict = checkpoint_io.load('model.pt')
+    load_dict = checkpoint_io.load('model.ckpt')
 except FileExistsError:
     load_dict = dict()
 epoch_it = load_dict.get('epoch_it', -1)
@@ -117,8 +114,8 @@ validate_every = cfg['training']['validate_every']
 visualize_every = cfg['training']['visualize_every']
 
 # Print model
-nparameters = sum(p.numel() for p in model.parameters())
-print(model)
+nparameters = model.count_params()
+model.summary()
 print('Total number of parameters: %d' % nparameters)
 
 while True:
@@ -143,13 +140,13 @@ while True:
         # Save checkpoint
         if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
             print('Saving checkpoint')
-            checkpoint_io.save('model.pt', epoch_it=epoch_it, it=it,
+            checkpoint_io.save('model.ckpt', epoch_it=epoch_it, it=it,
                                loss_val_best=metric_val_best)
 
         # Backup if necessary
         if (backup_every > 0 and (it % backup_every) == 0):
             print('Backup checkpoint')
-            checkpoint_io.save('model_%d.pt' % it, epoch_it=epoch_it, it=it,
+            checkpoint_io.save('model_%d.ckpt' % it, epoch_it=epoch_it, it=it,
                                loss_val_best=metric_val_best)
         # Run validation
         if validate_every > 0 and (it % validate_every) == 0:
@@ -164,12 +161,12 @@ while True:
             if model_selection_sign * (metric_val - metric_val_best) > 0:
                 metric_val_best = metric_val
                 print('New best model (loss %.4f)' % metric_val_best)
-                checkpoint_io.save('model_best.pt', epoch_it=epoch_it, it=it,
+                checkpoint_io.save('model_best.ckpt', epoch_it=epoch_it, it=it,
                                    loss_val_best=metric_val_best)
 
         # Exit if necessary
         if exit_after > 0 and (time.time() - t0) >= exit_after:
             print('Time limit reached. Exiting.')
-            checkpoint_io.save('model.pt', epoch_it=epoch_it, it=it,
+            checkpoint_io.save('model.ckpt', epoch_it=epoch_it, it=it,
                                loss_val_best=metric_val_best)
             exit(3)
