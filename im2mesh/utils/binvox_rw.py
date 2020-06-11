@@ -1,3 +1,5 @@
+# Copyright 2020 The TensorFlow Authors
+
 #  Copyright (C) 2012 Daniel Maturana
 #  This file is part of binvox-rw-py.
 #
@@ -65,6 +67,7 @@ True
 
 import numpy as np
 
+
 class Voxels(object):
     """ Holds a binvox model.
     data is either a three-dimensional numpy boolean array (dense representation)
@@ -104,6 +107,7 @@ class Voxels(object):
     def write(self, fp):
         write(self, fp)
 
+
 def read_header(fp):
     """ Read binvox header. Mostly meant for internal use.
     """
@@ -115,6 +119,7 @@ def read_header(fp):
     scale = [float(i) for i in fp.readline().strip().split(b' ')[1:]][0]
     line = fp.readline()
     return dims, translate, scale
+
 
 def read_as_3d_array(fp, fix_coords=True):
     """ Read binary binvox format as array.
@@ -190,7 +195,7 @@ def read_as_coord_array(fp, fix_coords=True):
     # index = x * wxh + z * width + y; // wxh = width * height = d * d
 
     x = nz_voxels / (dims[0]*dims[1])
-    zwpy = nz_voxels % (dims[0]*dims[1]) # z*w + y
+    zwpy = nz_voxels % (dims[0]*dims[1])  # z*w + y
     z = zwpy / dims[0]
     y = zwpy % dims[0]
     if fix_coords:
@@ -200,19 +205,21 @@ def read_as_coord_array(fp, fix_coords=True):
         data = np.vstack((x, z, y))
         axis_order = 'xzy'
 
-    #return Voxels(data, dims, translate, scale, axis_order)
+    # return Voxels(data, dims, translate, scale, axis_order)
     return Voxels(np.ascontiguousarray(data), dims, translate, scale, axis_order)
+
 
 def dense_to_sparse(voxel_data, dtype=np.int):
     """ From dense representation to sparse (coordinate) representation.
     No coordinate reordering.
     """
-    if voxel_data.ndim!=3:
+    if voxel_data.ndim != 3:
         raise ValueError('voxel_data is wrong shape; should be 3D array.')
     return np.asarray(np.nonzero(voxel_data), dtype)
 
+
 def sparse_to_dense(voxel_data, dims, dtype=np.bool):
-    if voxel_data.ndim!=2 or voxel_data.shape[0]!=3:
+    if voxel_data.ndim != 2 or voxel_data.shape[0] != 3:
         raise ValueError('voxel_data is wrong shape; should be 3xN array.')
     if np.isscalar(dims):
         dims = [dims]*3
@@ -221,16 +228,17 @@ def sparse_to_dense(voxel_data, dims, dtype=np.bool):
     xyz = voxel_data.astype(np.int)
     # discard voxels that fall outside dims
     valid_ix = ~np.any((xyz < 0) | (xyz >= dims), 0)
-    xyz = xyz[:,valid_ix]
+    xyz = xyz[:, valid_ix]
     out = np.zeros(dims.flatten(), dtype=dtype)
     out[tuple(xyz)] = True
     return out
 
-#def get_linear_index(x, y, z, dims):
-    #""" Assuming xzy order. (y increasing fastest.
-    #TODO ensure this is right when dims are not all same
-    #"""
-    #return x*(dims[1]*dims[2]) + z*dims[1] + y
+# def get_linear_index(x, y, z, dims):
+    # """ Assuming xzy order. (y increasing fastest.
+    # TODO ensure this is right when dims are not all same
+    # """
+    # return x*(dims[1]*dims[2]) + z*dims[1] + y
+
 
 def write(voxel_model, fp):
     """ Write binary binvox format.
@@ -241,7 +249,7 @@ def write(voxel_model, fp):
     Doesn't check if the model is 'sane'.
 
     """
-    if voxel_model.data.ndim==2:
+    if voxel_model.data.ndim == 2:
         # TODO avoid conversion to dense
         dense_voxel_data = sparse_to_dense(voxel_model.data, voxel_model.dims)
     else:
@@ -255,19 +263,19 @@ def write(voxel_model, fp):
     if not voxel_model.axis_order in ('xzy', 'xyz'):
         raise ValueError('Unsupported voxel model axis order')
 
-    if voxel_model.axis_order=='xzy':
+    if voxel_model.axis_order == 'xzy':
         voxels_flat = dense_voxel_data.flatten()
-    elif voxel_model.axis_order=='xyz':
+    elif voxel_model.axis_order == 'xyz':
         voxels_flat = np.transpose(dense_voxel_data, (0, 2, 1)).flatten()
 
     # keep a sort of state machine for writing run length encoding
     state = voxels_flat[0]
     ctr = 0
     for c in voxels_flat:
-        if c==state:
+        if c == state:
             ctr += 1
             # if ctr hits max, dump
-            if ctr==255:
+            if ctr == 255:
                 fp.write(chr(state))
                 fp.write(chr(ctr))
                 ctr = 0
@@ -281,6 +289,7 @@ def write(voxel_model, fp):
     if ctr > 0:
         fp.write(chr(state))
         fp.write(chr(ctr))
+
 
 if __name__ == '__main__':
     import doctest

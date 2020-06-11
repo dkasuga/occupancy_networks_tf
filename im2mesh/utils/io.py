@@ -1,3 +1,5 @@
+# Copyright 2020 The TensorFlow Authors
+
 import os
 from plyfile import PlyElement, PlyData
 import numpy as np
@@ -44,7 +46,7 @@ def read_off(file):
         # are  all in the first line.
         if len(lines[0]) > 3:
             assert lines[0][:3] == 'OFF' or lines[0][:3] == 'off', \
-                   'invalid OFF file %s' % file
+                'invalid OFF file %s' % file
 
             parts = lines[0][3:].split(' ')
             assert len(parts) == 3
@@ -59,7 +61,7 @@ def read_off(file):
         # This is the regular case!
         else:
             assert lines[0] == 'OFF' or lines[0] == 'off', \
-                   'invalid OFF file %s' % file
+                'invalid OFF file %s' % file
 
             parts = lines[1].split(' ')
             assert len(parts) == 3
@@ -88,8 +90,8 @@ def read_off(file):
             # check to be sure
             for index in face:
                 assert index != '', \
-                      'found empty vertex index: %s (%s)' \
-                      % (lines[start_index + num_vertices + i], file)
+                    'found empty vertex index: %s (%s)' \
+                    % (lines[start_index + num_vertices + i], file)
 
             face = [int(index) for index in face]
 
