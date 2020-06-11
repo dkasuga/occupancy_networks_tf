@@ -1,3 +1,4 @@
+# Copyright 2020 The TensorFlow Authors
 
 import numpy as np
 import trimesh
@@ -26,7 +27,7 @@ class VoxelGrid:
 
         # Default scale, scales the mesh to [-0.45, 0.45]^3
         if scale is None:
-            scale = (bounds[1] - bounds[0]).max()/0.9
+            scale = (bounds[1] - bounds[0]).max() / 0.9
 
         loc = np.asarray(loc)
         scale = float(scale)
@@ -34,7 +35,7 @@ class VoxelGrid:
         # Transform mesh
         mesh = mesh.copy()
         mesh.apply_translation(-loc)
-        mesh.apply_scale(1/scale)
+        mesh.apply_scale(1 / scale)
 
         # Apply method
         if method == 'ray':
@@ -213,7 +214,8 @@ def voxelize_ray(mesh, resolution):
 def voxelize_fill(mesh, resolution):
     bounds = mesh.bounds
     if (np.abs(bounds) >= 0.5).any():
-        raise ValueError('voxelize fill is only supported if mesh is inside [-0.5, 0.5]^3/')
+        raise ValueError(
+            'voxelize fill is only supported if mesh is inside [-0.5, 0.5]^3/')
 
     occ = voxelize_surface(mesh, resolution)
     occ = ndimage.morphology.binary_fill_holes(occ)

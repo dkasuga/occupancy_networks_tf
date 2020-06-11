@@ -1,3 +1,5 @@
+# Copyright 2020 The TensorFlow Authors
+
 from scipy.spatial import Delaunay
 from itertools import combinations
 import numpy as np
@@ -104,6 +106,7 @@ def upsample3d_nn(x):
 class DelauneyMeshExtractor(object):
     """Algorithm for extacting meshes from implicit function using
     delauney triangulation and random sampling."""
+
     def __init__(self, points, values, threshold=0.):
         self.points = points
         self.values = values
