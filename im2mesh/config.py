@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 import yaml
 from torchvision import transforms
 from im2mesh import data
@@ -70,7 +72,6 @@ def get_model(cfg, dataset=None):
 
     Args:
         cfg (dict): config dictionary
-        device (device): pytorch device
         dataset (dataset): dataset
     """
     method = cfg["method"]
@@ -86,7 +87,6 @@ def get_trainer(model, optimizer, cfg):
         model (nn.Module): the model which is used
         optimizer (optimizer): pytorch optimizer
         cfg (dict): config dictionary
-        device (device): pytorch device
     """
     method = cfg["method"]
     trainer = method_dict[method].config.get_trainer(model, optimizer, cfg)
@@ -100,7 +100,6 @@ def get_generator(model, cfg):
     Args:
         model (nn.Module): the model which is used
         cfg (dict): config dictionary
-        device (device): pytorch device
     """
     method = cfg["method"]
     generator = method_dict[method].config.get_generator(model, cfg)
@@ -190,16 +189,28 @@ def get_inputs_field(mode, cfg):
     if input_type is None:
         inputs_field = None
     elif input_type == "img":
+        transform = None
         if mode == "train" and cfg["data"]["img_augment"]:
-            resize_op = transforms.RandomResizedCrop(cfg["data"]["img_size"],
-                                                     (0.75, 1.0), (1.0, 1.0))
-        else:
-            resize_op = transforms.Resize((cfg["data"]["img_size"]))
+            # resize_op = transforms.RandomResizedCrop(cfg["data"]["img_size"],(0.75, 1.0), (1.0, 1.0))
+            def preprocess(image):
+                image = tf.image.crop_and_resize(
+                    image, crop_size=cfg["data"]["img_size"])  # CHECK
+                image /= 255.0
+                return image
 
-        transform = transforms.Compose([
-            resize_op,
-            transforms.ToTensor(),
-        ])
+            transform = preprocess
+        else:
+            def preprocess(image):
+                image = tf.image.resize(image, cfg["data"]["img_size"])
+                image /= 255.0
+                return image
+
+            transform = preprocess
+
+        # transform = transforms.Compose([
+        #     resize_op,
+        #     transforms.ToTensor(),
+        # ])
 
         with_camera = cfg["data"]["img_with_camera"]
 
@@ -215,10 +226,14 @@ def get_inputs_field(mode, cfg):
             random_view=random_view,
         )
     elif input_type == "pointcloud":
-        transform = transforms.Compose([
-            data.SubsamplePointcloud(cfg["data"]["pointcloud_n"]),
-            data.PointcloudNoise(cfg["data"]["pointcloud_noise"]),
-        ])
+        def preprocess(input):
+            output = data.SubsamplePointcloud(
+                cfg["data"]["pointcloud_n"])(input)
+            output = data.PointcloudNoise(
+                cfg["data"]["pointcloud_noise"])(output)
+            return output
+
+        transform = preprocess
         with_transforms = cfg["data"]["with_transforms"]
         inputs_field = data.PointCloudField(cfg["data"]["pointcloud_file"],
                                             transform,
@@ -232,13 +247,12 @@ def get_inputs_field(mode, cfg):
     return inputs_field
 
 
-def get_preprocessor(cfg, dataset=None, device=None):
+def get_preprocessor(cfg, dataset=None):
     """ Returns preprocessor instance.
 
     Args:
         cfg (dict): config dictionary
         dataset (dataset): dataset
-        device (device): pytorch device
     """
     p_type = cfg["preprocessor"]["type"]
     cfg_path = cfg["preprocessor"]["config"]
@@ -249,7 +263,6 @@ def get_preprocessor(cfg, dataset=None, device=None):
             cfg_path=cfg_path,
             pointcloud_n=cfg["data"]["pointcloud_n"],
             dataset=dataset,
-            device=device,
             model_file=model_file,
         )
     elif p_type is None:
