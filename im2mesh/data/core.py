@@ -1,3 +1,6 @@
+# Copyright 2020 The TensorFlow Authors
+
+import tensorflow as tf
 
 import os
 import logging
@@ -31,7 +34,7 @@ class Field(object):
         raise NotImplementedError
 
 
-class Shapes3dDataset(data.Dataset):
+class Shapes3dDataset(tf.keras.utils.Sequence):
     ''' 3D Shapes dataset class.
     '''
 
@@ -150,6 +153,12 @@ class Shapes3dDataset(data.Dataset):
                 return False
 
         return True
+
+
+""" TODO
+collate_remove_none
+data.dataloader.default_collate <- torch.utils.data used
+"""
 
 
 def collate_remove_none(batch):
