@@ -1,12 +1,13 @@
+# Copyright 2020 The TensorFlow Authors
+
+import tensorflow as tf
+
 import os
 from PIL import Image
 import numpy as np
-import torch
-from torch.utils import data
-from torchvision import transforms
 
 
-class KittiDataset(data.Dataset):
+class KittiDataset(tf.keras.utils.Sequence):
     r""" Kitti Instance dataset.
 
     Args:
@@ -58,17 +59,20 @@ class KittiDataset(data.Dataset):
         Args:
             idx (int): ID of data point
         '''
-        ori_file_name = os.path.basename(self.cropped_images[idx])[:9] + '.png'
-        original_img = Image.open(os.path.join(self.img_path, ori_file_name))
-        cropped_img = Image.open(self.cropped_images[idx])
+        # ori_file_name = os.path.basename(self.cropped_images[idx])[:9] + '.png'
+        # original_img_r = tf.io.read_file(
+        #     os.path.join(self.img_path, ori_file_name))
+        # original_img = tf.image.decode_image(
+        #     original_img_r, channels=3, dtype=tf.float32)
+        # original_img /= 255.0
 
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor()
-        ])
-        original_img = transforms.ToTensor()(original_img)
-        cropped_img = transform(cropped_img)
-        idx = torch.tensor(idx)
+        cropped_img_r = tf.io.read_file(self.cropped_images[idx])
+        cropped_img = tf.image.decode_image(
+            cropped_img_r, channels=3, dtype=tf.float32)
+        cropped_img = tf.image.resize(cropped_img, [224, 224])
+        cropped_img /= 255.0
+
+        idx = tf.convert_to_tesnor(idx)
 
         data = {
             'inputs': cropped_img,
@@ -78,7 +82,7 @@ class KittiDataset(data.Dataset):
         return data
 
 
-class OnlineProductDataset(data.Dataset):
+class OnlineProductDataset(tf.keras.utils.Sequence):
     r""" Stanford Online Product Dataset.
 
     Args:
@@ -95,10 +99,8 @@ class OnlineProductDataset(data.Dataset):
 
         self.img_size = img_size
         self.dataset_folder = dataset_folder
-        self.transform = transforms.Compose([
-            transforms.Resize((img_size, img_size)),
-            transforms.ToTensor()
-        ])
+        self.transform = lambda image: tf.image.resize(
+            image, [img_size, img_size]) / 255.0
         self.class_id = {}
         self.metadata = []
 
@@ -153,11 +155,20 @@ class OnlineProductDataset(data.Dataset):
             self.file_names[idx, 1]+'_final',
             self.file_names[idx, 0])
 
+        cropped_img_r = tf.io.read_file(self.cropped_images[idx])
+        cropped_img = tf.image.decode_image(
+            cropped_img_r, channels=3, dtype=tf.float32)
+        cropped_img = tf.image.resize(cropped_img, [224, 224])
+
+        img_in = tf.io.read_file(f)
+
         img_in = Image.open(f)
         img = Image.new("RGB", img_in.size)
         img.paste(img_in)
-        idx = torch.tensor(idx)
-        cl_id = torch.tensor(self.class_id[self.file_names[idx, 1]])
+        img = tf.keras.preprocessing.image.img_to_array(img)
+
+        cl_id = tf.convert_to_tensor(self.class_id[self.file_names[idx, 1]])
+        idx = tf.convert_to_tesnor(idx)
 
         if self.transform:
             img = self.transform(img)
@@ -177,10 +188,12 @@ class OnlineProductDataset(data.Dataset):
 
 IMAGE_EXTENSIONS = (
     '.jpg', '.jpeg', '.JPG', '.JPEG', '.png', '.PNG'
+
+
 )
 
 
-class ImageDataset(data.Dataset):
+class ImageDataset(tf.keras.utils.Sequence):
     r""" Cars Dataset.
 
     Args:
@@ -206,10 +219,9 @@ class ImageDataset(data.Dataset):
             if os.path.splitext(f)[1] in IMAGE_EXTENSIONS
         ]
         self.len = len(self.file_list)
-        self.transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor()
-        ])
+        self.transform = lambda image: tf.image.resize(
+            image, [224, 224]) / 255.0
+
         self.return_idx = return_idx
 
     def get_model(self, idx):
@@ -243,10 +255,12 @@ class ImageDataset(data.Dataset):
         img_in = Image.open(f)
         img = Image.new("RGB", img_in.size)
         img.paste(img_in)
+        img = tf.keras.preprocessing.image.img_to_array(img)
+
         if self.transform:
             img = self.transform(img)
 
-        idx = torch.tensor(idx)
+        idx = tf.convert_to_tesnor(idx)
 
         data = {
             'inputs': img,
