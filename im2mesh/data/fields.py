@@ -1,3 +1,6 @@
+# Copyright 2020 The TensorFlow Authors
+
+import tensorflow as tf
 
 import os
 import glob
@@ -90,7 +93,10 @@ class ImagesField(Field):
             idx_img = 0
         filename = files[idx_img]
 
-        image = Image.open(filename).convert('RGB')
+        # image = Image.open(filename).convert('RGB')
+        image_r = tf.io.read_file(filename)
+        image = tf.image.decode_image(image_r, channels=3, dtype=tf.float32)
+
         if self.transform is not None:
             image = self.transform(image)
 
