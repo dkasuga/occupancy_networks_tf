@@ -53,7 +53,7 @@ if not os.path.exists(out_dir):
 train_dataset = config.get_dataset('train', cfg)
 val_dataset = config.get_dataset('val', cfg)
 
-# TODO
+""" TODOJ
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, num_workers=4, shuffle=True,
     collate_fn=data.collate_remove_none,
@@ -71,6 +71,7 @@ vis_loader = torch.utils.data.DataLoader(
     collate_fn=data.collate_remove_none,
     worker_init_fn=data.worker_init_fn)
 data_vis = next(iter(vis_loader))
+"""
 
 # Model
 model = config.get_model(cfg, dataset=train_dataset)
