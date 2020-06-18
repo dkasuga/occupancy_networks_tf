@@ -8,6 +8,8 @@ from torch.utils import data
 import numpy as np
 import yaml
 
+from sklearn.utils import shuffle
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +36,12 @@ class Field(object):
         raise NotImplementedError
 
 
-class Shapes3dDataset(tf.keras.utils.Sequence):
+# Dataset and Dataloader
+class Shapes3dDataset(object):
     ''' 3D Shapes dataset class.
     '''
 
-    def __init__(self, dataset_folder, fields, split=None,
+    def __init__(self, dataset_folder, fields, split=None, batch_size=32, shuffle=False, random_state=None,
                  categories=None, no_except=True, transform=None):
         ''' Initialization of the the 3D shape dataset.
         Args:
@@ -50,6 +53,13 @@ class Shapes3dDataset(tf.keras.utils.Sequence):
             transform (callable): transformation applied to data points
         '''
         # Attributes
+        self.dataset = []
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        if random_state is None:
+            random_state = np.random.RandomState(1234)
+        self.random_state = random_state
+        self._index = 0
         self.dataset_folder = dataset_folder
         self.fields = fields
         self.no_except = no_except
@@ -92,49 +102,71 @@ class Shapes3dDataset(tf.keras.utils.Sequence):
                 for m in models_c
             ]
 
+        for idx in range(len(self.models)):
+            category = self.models[idx]['category']
+            model = self.models[idx]['model']
+            c_idx = self.metadata[category]['idx']
+
+            model_path = os.path.join(self.dataset_folder, category, model)
+            data = {}
+
+            for field_name, field in self.fields.items():
+                try:
+                    field_data = field.load(model_path, idx, c_idx)
+                except Exception:
+                    if self.no_except:
+                        logger.warn(
+                            'Error occured when loading field %s of model %s'
+                            % (field_name, model)
+                        )
+                        return None
+                    else:
+                        raise
+
+                if isinstance(field_data, dict):
+                    for k, v in field_data.items():
+                        if k is None:
+                            data[field_name] = v
+                        else:
+                            data['%s.%s' % (field_name, k)] = v
+                else:
+                    data[field_name] = field_data
+
+            if self.transform is not None:
+                data = self.transform(data)
+
+            self.dataset.append(data)
+
     def __len__(self):
         ''' Returns the length of the dataset.
         '''
-        return len(self.models)
+        N = len(self.dataset)
+        b = self.batch_size
+        return N // b + bool(N % b)
 
-    def __getitem__(self, idx):
+    def __iter__(self):
+        return self
+
+    def __next__(self):
         ''' Returns an item of the dataset.
         Args:
             idx (int): ID of data point
         '''
-        category = self.models[idx]['category']
-        model = self.models[idx]['model']
-        c_idx = self.metadata[category]['idx']
+        if self._index >= len(self.dataset):
+            self._reset()
+            raise StopIteration()
 
-        model_path = os.path.join(self.dataset_folder, category, model)
-        data = {}
+        indexes = self.dataset[self._index:
+                               (self._index + self.batch_size)]
 
-        for field_name, field in self.fields.items():
-            try:
-                field_data = field.load(model_path, idx, c_idx)
-            except Exception:
-                if self.no_except:
-                    logger.warn(
-                        'Error occured when loading field %s of model %s'
-                        % (field_name, model)
-                    )
-                    return None
-                else:
-                    raise
+        self._index += self.batch_size
+        return indexes
 
-            if isinstance(field_data, dict):
-                for k, v in field_data.items():
-                    if k is None:
-                        data[field_name] = v
-                    else:
-                        data['%s.%s' % (field_name, k)] = v
-            else:
-                data[field_name] = field_data
-
-        if self.transform is not None:
-            data = self.transform(data)
-
-        return data
+    def _reset(self):
+        if self.shuffle:
+            self.dataset = shuffle(self.dataset,
+                                   random_state=self.random_state)
+        self._index = 0
 
     def get_model_dict(self, idx):
         return self.models[idx]
