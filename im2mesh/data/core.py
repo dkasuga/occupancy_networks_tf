@@ -137,6 +137,8 @@ class Shapes3dDataset(object):
 
             self.dataset.append(data)
 
+        self._reset()
+
     def __len__(self):
         ''' Returns the length of the dataset.
         '''
