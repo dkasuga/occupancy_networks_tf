@@ -50,28 +50,14 @@ if not os.path.exists(out_dir):
 
 # Dataset
 # specify path
-train_dataset = config.get_dataset('train', cfg)
-val_dataset = config.get_dataset('val', cfg)
+train_dataset = config.get_dataset(
+    'train', cfg, batch_size=batch_size, shuffle=True)
+val_dataset = config.get_dataset(
+    'val', cfg, batch_size=10, shuffle=False)
+vis_dataset = config.get_dataset(
+    'val', cfg, batch_size=12, shuffle=True)
 
-""" TODOJ
-train_loader = torch.utils.data.DataLoader(
-    train_dataset, batch_size=batch_size, num_workers=4, shuffle=True,
-    collate_fn=data.collate_remove_none,
-    worker_init_fn=data.worker_init_fn)
-
-val_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=10, num_workers=4, shuffle=False,
-    collate_fn=data.collate_remove_none,
-    worker_init_fn=data.worker_init_fn)
-
-
-# For visualizations
-vis_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=12, shuffle=True,
-    collate_fn=data.collate_remove_none,
-    worker_init_fn=data.worker_init_fn)
-data_vis = next(iter(vis_loader))
-"""
+data_vis = next(iter(vis_dataset))
 
 # Model
 model = config.get_model(cfg, dataset=train_dataset)
