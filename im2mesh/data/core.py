@@ -4,7 +4,6 @@ import tensorflow as tf
 
 import os
 import logging
-from torch.utils import data
 import numpy as np
 import yaml
 

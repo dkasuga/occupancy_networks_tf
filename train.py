@@ -2,8 +2,6 @@ from im2mesh.checkpoints import CheckpointIO
 from im2mesh import config, data
 import tensorflow as tf
 
-import torch
-import torch.optim as optim
 from tensorboardX import SummaryWriter
 import numpy as np
 import os
