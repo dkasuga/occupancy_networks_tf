@@ -6,8 +6,10 @@ import os
 from PIL import Image
 import numpy as np
 
+from sklearn.utils import shuffle
 
-class KittiDataset(tf.keras.utils.Sequence):
+
+class KittiDataset(object):
     r""" Kitti Instance dataset.
 
     Args:
@@ -17,7 +19,14 @@ class KittiDataset(tf.keras.utils.Sequence):
         return_idx (bool): wether to return index
     """
 
-    def __init__(self, dataset_folder, img_size=224, transform=None, return_idx=False):
+    def __init__(self, dataset_folder, batch_size=32, shuffle=False, random_state=None, img_size=224, transform=None, return_idx=False):
+        self.dataset = []
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        if random_state is None:
+            random_state = np.random.RandomState(1234)
+        self.random_state = random_state
+        self._index = 0
         self.img_size = img_size
         self.img_path = os.path.join(dataset_folder, 'image_2')
         crop_path = os.path.join(dataset_folder, 'cropped_images')
@@ -28,9 +37,26 @@ class KittiDataset(tf.keras.utils.Sequence):
                 current_file_path = os.path.join(folder_path, file_name)
                 self.cropped_images.append(current_file_path)
 
-        self.len = len(self.cropped_images)
         self.transform = transform
         self.return_idx = return_idx
+
+        for idx in range(len(self.cropped_images)):
+            cropped_img_r = tf.io.read_file(self.cropped_images[idx])
+            cropped_img = tf.image.decode_image(
+                cropped_img_r, channels=3, dtype=tf.float32)
+            cropped_img = tf.image.resize(cropped_img, [224, 224])
+            cropped_img /= 255.0
+
+            idx = tf.convert_to_tesnor(idx)
+
+            data = {
+                'inputs': cropped_img,
+                'idx': idx,
+            }
+
+            self.dataset.append(data)
+
+        self._reset()
 
     def get_model_dict(self, idx):
         model_dict = {
@@ -39,50 +65,45 @@ class KittiDataset(tf.keras.utils.Sequence):
         }
         return model_dict
 
-    def get_model(self, idx):
-        ''' Returns the model.
+    # def get_model(self, idx):
+    #     ''' Returns the model.
 
-        Args:
-            idx (int): ID of data point
-        '''
-        f_name = os.path.basename(self.cropped_images[idx])[:-4]
-        return f_name
+    #     Args:
+    #         idx (int): ID of data point
+    #     '''
+    #     f_name = os.path.basename(self.cropped_images[idx])[:-4]
+    #     return f_name
 
     def __len__(self):
         ''' Returns the length of the dataset.
         '''
-        return self.len
+        N = len(self.dataset)
+        b = self.batch_size
+        retrn N // b + bool(N % b)
 
-    def __getitem__(self, idx):
-        ''' Returns the data point.
-
+    def __next__(self):
+        ''' Returns an item of the dataset.
         Args:
             idx (int): ID of data point
         '''
-        # ori_file_name = os.path.basename(self.cropped_images[idx])[:9] + '.png'
-        # original_img_r = tf.io.read_file(
-        #     os.path.join(self.img_path, ori_file_name))
-        # original_img = tf.image.decode_image(
-        #     original_img_r, channels=3, dtype=tf.float32)
-        # original_img /= 255.0
+        if self._index >= len(self.dataset):
+            self._reset()
+            raise StopIteration()
 
-        cropped_img_r = tf.io.read_file(self.cropped_images[idx])
-        cropped_img = tf.image.decode_image(
-            cropped_img_r, channels=3, dtype=tf.float32)
-        cropped_img = tf.image.resize(cropped_img, [224, 224])
-        cropped_img /= 255.0
+        indexes = self.dataset[self._index:
+                               (self._index + self.batch_size)]
 
-        idx = tf.convert_to_tesnor(idx)
+        self._index += self.batch_size
+        return indexes
 
-        data = {
-            'inputs': cropped_img,
-            'idx': idx,
-        }
-
-        return data
+    def _reset(self):
+        if self.shuffle:
+            self.dataset = shuffle(self.dataset,
+                                   random_state=self.random_state)
+        self._index = 0
 
 
-class OnlineProductDataset(tf.keras.utils.Sequence):
+class OnlineProductDataset(object):
     r""" Stanford Online Product Dataset.
 
     Args:
@@ -94,8 +115,15 @@ class OnlineProductDataset(tf.keras.utils.Sequence):
         return_category (bool): wether to return category
     """
 
-    def __init__(self, dataset_folder, img_size=224, classes=['chair'],
-                 max_number_imgs=1000, return_idx=False, return_category=False):
+    def __init__(self, dataset_folder, batch_size=32, shuffle=False, random_state=None, img_size=224, classes=['chair'], max_number_imgs=1000, return_idx=False, return_category=False):
+
+        self.dataset = []
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        if random_state is None:
+            random_state = np.random.RandomState(1234)
+        self.random_state = random_state
+        self._index = 0
 
         self.img_size = img_size
         self.dataset_folder = dataset_folder
@@ -117,9 +145,40 @@ class OnlineProductDataset(tf.keras.utils.Sequence):
             else:
                 self.file_names = att
 
-        self.len = self.file_names.shape[0]
         self.return_idx = return_idx
         self.return_category = return_category
+
+        for idx in range(len(self.file_names)):
+            f = os.path.join(
+                self.dataset_folder,
+                self.file_names[idx, 1]+'_final',
+                self.file_names[idx, 0])
+
+            img_in = Image.open(f)
+            img = Image.new("RGB", img_in.size)
+            img.paste(img_in)
+            img = tf.keras.preprocessing.image.img_to_array(img)
+
+            cl_id = tf.convert_to_tensor(
+                self.class_id[self.file_names[idx, 1]])
+            idx = tf.convert_to_tesnor(idx)
+
+            if self.transform:
+                img = self.transform(img)
+
+            data = {
+                'inputs': img,
+            }
+
+            if self.return_idx:
+                data['idx'] = idx
+
+            if self.return_category:
+                data['category'] = cl_id
+
+            self.dataset.append(data)
+
+        self._reset()
 
     def get_model_dict(self, idx):
         category_id = self.class_id[self.file_names[idx, 1]]
@@ -142,48 +201,30 @@ class OnlineProductDataset(tf.keras.utils.Sequence):
     def __len__(self):
         ''' Returns the length of the dataset.
         '''
-        return self.len
+        N = len(self.dataset)
+        b = self.batch_size
+        retrn N // b + bool(N % b)
 
-    def __getitem__(self, idx):
-        ''' Returns the data point.
-
+    def __next__(self):
+        ''' Returns an item of the dataset.
         Args:
             idx (int): ID of data point
         '''
-        f = os.path.join(
-            self.dataset_folder,
-            self.file_names[idx, 1]+'_final',
-            self.file_names[idx, 0])
+        if self._index >= len(self.dataset):
+            self._reset()
+            raise StopIteration()
 
-        cropped_img_r = tf.io.read_file(self.cropped_images[idx])
-        cropped_img = tf.image.decode_image(
-            cropped_img_r, channels=3, dtype=tf.float32)
-        cropped_img = tf.image.resize(cropped_img, [224, 224])
+        indexes = self.dataset[self._index:
+                               (self._index + self.batch_size)]
 
-        img_in = tf.io.read_file(f)
+        self._index += self.batch_size
+        return indexes
 
-        img_in = Image.open(f)
-        img = Image.new("RGB", img_in.size)
-        img.paste(img_in)
-        img = tf.keras.preprocessing.image.img_to_array(img)
-
-        cl_id = tf.convert_to_tensor(self.class_id[self.file_names[idx, 1]])
-        idx = tf.convert_to_tesnor(idx)
-
-        if self.transform:
-            img = self.transform(img)
-
-        data = {
-            'inputs': img,
-        }
-
-        if self.return_idx:
-            data['idx'] = idx
-
-        if self.return_category:
-            data['category'] = cl_id
-
-        return data
+    def _reset(self):
+        if self.shuffle:
+            self.dataset = shuffle(self.dataset,
+                                   random_state=self.random_state)
+        self._index = 0
 
 
 IMAGE_EXTENSIONS = (
@@ -193,7 +234,7 @@ IMAGE_EXTENSIONS = (
 )
 
 
-class ImageDataset(tf.keras.utils.Sequence):
+class ImageDataset(object):
     r""" Cars Dataset.
 
     Args:
@@ -202,7 +243,7 @@ class ImageDataset(tf.keras.utils.Sequence):
         transform (list): list of transformations applied to the data points
     """
 
-    def __init__(self, dataset_folder, img_size=224, transform=None, return_idx=False):
+    def __init__(self, dataset_folder, batch_size=32, shuffle=False, random_state=None, img_size=224, transform=None, return_idx=False):
         """
 
         Arguments:
@@ -210,6 +251,14 @@ class ImageDataset(tf.keras.utils.Sequence):
             img_size (int): required size of the cropped images
             return_idx (bool): wether to return index
         """
+
+        self.dataset = []
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        if random_state is None:
+            random_state = np.random.RandomState(1234)
+        self.random_state = random_state
+        self._index = 0
 
         self.img_size = img_size
         self.img_path = dataset_folder
@@ -223,6 +272,29 @@ class ImageDataset(tf.keras.utils.Sequence):
             image, [224, 224]) / 255.0
 
         self.return_idx = return_idx
+
+        for idx in range(len(self.file_list)):
+            f = os.path.join(self.img_path, self.file_list[idx])
+            img_in = Image.open(f)
+            img = Image.new("RGB", img_in.size)
+            img.paste(img_in)
+            img = tf.keras.preprocessing.image.img_to_array(img)
+
+            if self.transform:
+                img = self.transform(img)
+
+            idx = tf.convert_to_tesnor(idx)
+
+            data = {
+                'inputs': img,
+            }
+
+            if self.return_idx:
+                data['idx'] = idx
+
+            self.dataset.append(data)
+
+        self._reset()
 
     def get_model(self, idx):
         ''' Returns the model.
@@ -242,31 +314,29 @@ class ImageDataset(tf.keras.utils.Sequence):
         return model_dict
 
     def __len__(self):
-        ''' Returns the length of the dataset.'''
-        return self.len
+        ''' Returns the length of the dataset.
+        '''
+        N = len(self.dataset)
+        b = self.batch_size
+        retrn N // b + bool(N % b)
 
-    def __getitem__(self, idx):
-        ''' Returns the data point.
-
+    def __next__(self):
+        ''' Returns an item of the dataset.
         Args:
             idx (int): ID of data point
         '''
-        f = os.path.join(self.img_path, self.file_list[idx])
-        img_in = Image.open(f)
-        img = Image.new("RGB", img_in.size)
-        img.paste(img_in)
-        img = tf.keras.preprocessing.image.img_to_array(img)
+        if self._index >= len(self.dataset):
+            self._reset()
+            raise StopIteration()
 
-        if self.transform:
-            img = self.transform(img)
+        indexes = self.dataset[self._index:
+                               (self._index + self.batch_size)]
 
-        idx = tf.convert_to_tesnor(idx)
+        self._index += self.batch_size
+        return indexes
 
-        data = {
-            'inputs': img,
-        }
-
-        if self.return_idx:
-            data['idx'] = idx
-
-        return data
+    def _reset(self):
+        if self.shuffle:
+            self.dataset = shuffle(self.dataset,
+                                   random_state=self.random_state)
+        self._index = 0
