@@ -107,7 +107,7 @@ def get_generator(model, cfg):
 
 
 # Datasets
-def get_dataset(mode, cfg, return_idx=False, return_category=False):
+def get_dataset(mode, cfg, batch_size, shuffle, random_state=None, return_idx=False, return_category=False):
     """ Returns the dataset.
 
     Args:
@@ -149,15 +149,21 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False):
             dataset_folder,
             fields,
             split=split,
+            batch_size=batch_size,
+            shuffle=shuffle,
             categories=categories,
         )
     elif dataset_type == "kitti":
         dataset = data.KittiDataset(dataset_folder,
+                                    batch_size=batch_size,
+                                    shuffle=shuffle,
                                     img_size=cfg["data"]["img_size"],
                                     return_idx=return_idx)
     elif dataset_type == "online_products":
         dataset = data.OnlineProductDataset(
             dataset_folder,
+            batch_size=batch_size,
+            shuffle=shuffle,
             img_size=cfg["data"]["img_size"],
             classes=cfg["data"]["classes"],
             max_number_imgs=cfg["generation"]["max_number_imgs"],
@@ -167,6 +173,8 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False):
     elif dataset_type == "images":
         dataset = data.ImageDataset(
             dataset_folder,
+            batch_size=batch_size,
+            shuffle=shuffle,
             img_size=cfg["data"]["img_size"],
             return_idx=return_idx,
         )
