@@ -189,7 +189,7 @@ class AffineLayer(tf.keras.Model):
     #         self.fc_A.bias.copy_(torch.eye(3).view(-1))
     #         self.fc_b.bias.copy_(torch.tensor([0., 0., 2.]))
 
-    def forward(self, x, p):
+    def call(self, x, p):
         assert (x.shape[0] == p.shape[0])
         assert (p.shape[2] == self.dim)
         batch_size = x.size(0)
