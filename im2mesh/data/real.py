@@ -79,7 +79,7 @@ class KittiDataset(object):
         '''
         N = len(self.dataset)
         b = self.batch_size
-        retrn N // b + bool(N % b)
+        return N // b + bool(N % b)
 
     def __next__(self):
         ''' Returns an item of the dataset.
@@ -318,7 +318,7 @@ class ImageDataset(object):
         '''
         N = len(self.dataset)
         b = self.batch_size
-        retrn N // b + bool(N % b)
+        return N // b + bool(N % b)
 
     def __next__(self):
         ''' Returns an item of the dataset.
