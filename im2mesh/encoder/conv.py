@@ -113,7 +113,7 @@ class Resnet50(tf.keras.Model):
             include_top=False)  # feature_extractor
 
         if use_linear:
-            self.fc = tf.keras.layers(c_dim)
+            self.fc = tf.keras.layers.Dense(c_dim)
         elif c_dim == 2048:
             # self.fc = nn.Sequential() # original
             self.fc = tf.keras.Sequential()  # CHECK
@@ -145,7 +145,7 @@ class Resnet101(tf.keras.Model):
             include_top=False)  # feature_extractor
 
         if use_linear:
-            self.fc = tf.keras.layers(c_dim)
+            self.fc = tf.keras.layers.Dense(c_dim)
         elif c_dim == 2048:
             # self.fc = nn.Sequential() # original
             self.fc = tf.keras.Sequential()  # CHECK

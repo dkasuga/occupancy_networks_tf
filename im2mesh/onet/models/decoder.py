@@ -102,16 +102,16 @@ class DecoderCBatchNorm(tf.keras.Model):
 
         self.fc_p = tf.keras.layers.Conv1D(hidden_size, 1)
 
-        self.block0 = CResnetBlockConv1d(hidden_size, legacy=legacy)
-        self.block1 = CResnetBlockConv1d(hidden_size, legacy=legacy)
-        self.block2 = CResnetBlockConv1d(hidden_size, legacy=legacy)
-        self.block3 = CResnetBlockConv1d(hidden_size, legacy=legacy)
-        self.block4 = CResnetBlockConv1d(hidden_size, legacy=legacy)
+        self.block0 = CResnetBlockConv1d(c_dim, hidden_size, legacy=legacy)
+        self.block1 = CResnetBlockConv1d(c_dim, hidden_size, legacy=legacy)
+        self.block2 = CResnetBlockConv1d(c_dim, hidden_size, legacy=legacy)
+        self.block3 = CResnetBlockConv1d(c_dim, hidden_size, legacy=legacy)
+        self.block4 = CResnetBlockConv1d(c_dim, hidden_size, legacy=legacy)
 
         if not legacy:
-            self.bn = CBatchNorm1d(hidden_size)
+            self.bn = CBatchNorm1d(c_dim, hidden_size)
         else:
-            self.bn = CBatchNorm1d_legacy(hidden_size)
+            self.bn = CBatchNorm1d_legacy(c_dim, hidden_size)
 
         self.fc_out = tf.keras.layers.Conv1D(1, 1)
 
@@ -169,7 +169,7 @@ class DecoderCBatchNorm2(tf.keras.Model):
             CResnetBlockConv1d(c_dim, hidden_size) for i in range(n_blocks)
         ]  # CHECK nn.ModuleList -> List
 
-        self.bn = CBatchNorm1d(hidden_size)
+        self.bn = CBatchNorm1d(c_dim, hidden_size)
         self.conv_net = tf.keras.layers.Conv1D(1, 1)
         self.actvn = tf.keras.layers.ReLU()
 
@@ -219,12 +219,12 @@ class DecoderCBatchNormNoResnet(tf.keras.Model):
         self.fc_3 = tf.keras.layers.Conv1D(hidden_size)
         self.fc_4 = tf.keras.layers.Conv1D(hidden_size)
 
-        self.bn_0 = CBatchNorm1d(hidden_size)
-        self.bn_1 = CBatchNorm1d(hidden_size)
-        self.bn_2 = CBatchNorm1d(hidden_size)
-        self.bn_3 = CBatchNorm1d(hidden_size)
-        self.bn_4 = CBatchNorm1d(hidden_size)
-        self.bn_5 = CBatchNorm1d(hidden_size)
+        self.bn_0 = CBatchNorm1d(c_dim, hidden_size)
+        self.bn_1 = CBatchNorm1d(c_dim, hidden_size)
+        self.bn_2 = CBatchNorm1d(c_dim, hidden_size)
+        self.bn_3 = CBatchNorm1d(c_dim, hidden_size)
+        self.bn_4 = CBatchNorm1d(c_dim, hidden_size)
+        self.bn_5 = CBatchNorm1d(c_dim, hidden_size)
 
         self.fc_out = tf.keras.layers.Dense(1, 1)
 
