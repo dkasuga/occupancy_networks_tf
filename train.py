@@ -17,12 +17,20 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument('config', type=str, help='Path to config file.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
+parser.add_argument('--gpu', type=int, default=0,
+                    help='Assign gpu device id you want to use. ')
 parser.add_argument('--exit-after', type=int, default=-1,
                     help='Checkpoint and exit after specified number of seconds'
                          'with exit code 2.')
 
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
+
+gpu_id = args.gpu
+if tf.__version__ >= "2.1.0":
+    physical_devices = tf.config.list_physical_devices('GPU')
+    print(tf.config.list_physical_devices('GPU'))
+    tf.config.set_visible_devices(physical_devices[gpu_id], 'GPU')
 
 # Set t0
 t0 = time.time()
@@ -90,7 +98,7 @@ print('Current best validation metric (%s): %.8f'
 # TODO: reintroduce or remove scheduler?
 # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=4000,
 #                                       gamma=0.1, last_epoch=epoch_it)
-logger = SummaryWriter(os.path.join(out_dir, 'logs'))
+# logger = SummaryWriter(os.path.join(out_dir, 'logs'))
 
 # Shorthands
 print_every = cfg['training']['print_every']

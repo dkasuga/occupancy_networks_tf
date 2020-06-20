@@ -97,8 +97,10 @@ class ImagesField(Field):
         image_r = tf.io.read_file(filename)
         image = tf.image.decode_image(image_r, channels=3, dtype=tf.float32)
 
-        if self.transform is not None:
-            image = self.transform(image)
+        # print(self.transform)
+        # print(self.transoform(image))
+        # if self.transform is not None:
+        #     image = self.transform(image)
 
         data = {
             None: image

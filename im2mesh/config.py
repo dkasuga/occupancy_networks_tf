@@ -200,8 +200,9 @@ def get_inputs_field(mode, cfg):
         if mode == "train" and cfg["data"]["img_augment"]:
             # resize_op = transforms.RandomResizedCrop(cfg["data"]["img_size"],(0.75, 1.0), (1.0, 1.0))
             def preprocess(image):
-                image = tf.image.crop_and_resize(
-                    image, crop_size=cfg["data"]["img_size"])  # CHECK
+                # image = tf.image.crop_and_resize(
+                #     image, crop_size=cfg["data"]["img_size"])  # CHECK
+                image = tf.image.resize(image, cfg["data"]["img_size"])
                 image /= 255.0
                 return image
 

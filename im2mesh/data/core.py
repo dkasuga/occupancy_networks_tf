@@ -9,6 +9,8 @@ import yaml
 
 from sklearn.utils import shuffle
 
+from tqdm import tqdm
+
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +54,6 @@ class Shapes3dDataset(object):
             transform (callable): transformation applied to data points
         '''
         # Attributes
-        self.dataset = []
         self.batch_size = batch_size
         self.shuffle = shuffle
         if random_state is None:
@@ -101,7 +102,26 @@ class Shapes3dDataset(object):
                 for m in models_c
             ]
 
-        for idx in range(len(self.models)):
+        self._reset()
+        print("ShapeNet3D dataset __init__ complete")
+
+    def __len__(self):
+        ''' Returns the length of the dataset.
+        '''
+        N = len(self.models)
+        b = self.batch_size
+        return N // b + bool(N % b)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        ''' Returns an item of the dataset.
+        Args:
+            idx (int): ID of data point
+        '''
+        indexes = []
+        for idx in range(self._index, min(self._index + self.batch_size, len(self.models))):
             category = self.models[idx]['category']
             model = self.models[idx]['model']
             c_idx = self.metadata[category]['idx']
@@ -133,40 +153,20 @@ class Shapes3dDataset(object):
 
             if self.transform is not None:
                 data = self.transform(data)
-
-            self.dataset.append(data)
-
-        self._reset()
-
-    def __len__(self):
-        ''' Returns the length of the dataset.
-        '''
-        N = len(self.dataset)
-        b = self.batch_size
-        return N // b + bool(N % b)
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        ''' Returns an item of the dataset.
-        Args:
-            idx (int): ID of data point
-        '''
-        if self._index >= len(self.dataset):
-            self._reset()
-            raise StopIteration()
-
-        indexes = self.dataset[self._index:
-                               (self._index + self.batch_size)]
+            indexes.append(data)
 
         self._index += self.batch_size
+
+        if self._index >= len(self.models):
+            self._reset()
+            # raise StopIteration()
+
         return indexes
 
     def _reset(self):
         if self.shuffle:
-            self.dataset = shuffle(self.dataset,
-                                   random_state=self.random_state)
+            self.models = shuffle(self.models,
+                                  random_state=self.random_state)
         self._index = 0
 
     def get_model_dict(self, idx):
