@@ -109,7 +109,6 @@ class Resnet50(tf.keras.Model):
         super().__init__()
         self.normalize = normalize
         self.use_linear = use_linear
-        self.features = models.resnet50(pretrained=True)
         self.features = tf.keras.applications.ResNet50(
             include_top=False)  # feature_extractor
 
@@ -142,7 +141,6 @@ class Resnet101(tf.keras.Model):
         super().__init__()
         self.normalize = normalize
         self.use_linear = use_linear
-        self.features = models.resnet101(pretrained=True)
         self.features = tf.keras.applications.ResNet50(
             include_top=False)  # feature_extractor
 
