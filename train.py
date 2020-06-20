@@ -2,7 +2,7 @@ from im2mesh.checkpoints import CheckpointIO
 from im2mesh import config, data
 import tensorflow as tf
 
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 import numpy as np
 import os
 import argparse

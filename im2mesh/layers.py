@@ -1,6 +1,3 @@
-import torch
-import torch.nn as nn
-
 import tensorflow as tf
 import tensorflow_addons as tfa
 '''
@@ -18,6 +15,7 @@ class ResnetBlockFC(tf.keras.Model):
         size_out (int): output dimension
         size_h (int): hidden dimension
     '''
+
     def __init__(self, size_in, size_out=None, size_h=None):
         super().__init__()
         # Attributes
@@ -64,6 +62,7 @@ class CResnetBlockConv1d(tf.keras.Model):
         norm_method (str): normalization method
         legacy (bool): whether to use legacy blocks
     '''
+
     def __init__(self,
                  c_dim,
                  size_in,
@@ -124,6 +123,7 @@ class ResnetBlockConv1d(tf.keras.Model):
         size_out (int): output dimension
         size_h (int): hidden dimension
     '''
+
     def __init__(self, size_in, size_h=None, size_out=None):
         super().__init__()
         # Attributes
@@ -170,6 +170,7 @@ class AffineLayer(tf.keras.Model):
         c_dim (tensor): dimension of latent conditioned code c
         dim (int): input dimension
     '''
+
     def __init__(self, c_dim, dim=3):
         super().__init__()
         self.c_dim = c_dim
@@ -206,6 +207,7 @@ class CBatchNorm1d(tf.keras.Model):
         f_dim (int): feature dimension
         norm_method (str): normalization method
     '''
+
     def __init__(self, c_dim, f_dim, norm_method='batch_norm'):
         super().__init__()
         self.c_dim = c_dim
@@ -264,6 +266,7 @@ class CBatchNorm1d_legacy(tf.keras.Model):
         f_dim (int): feature dimension
         norm_method (str): normalization method
     '''
+
     def __init__(self, c_dim, f_dim, norm_method='batch_norm'):
         super().__init__()
         self.c_dim = c_dim

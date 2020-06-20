@@ -2,15 +2,15 @@ import tensorflow as tf
 
 import yaml
 from im2mesh import data
-from im2mesh import onet, r2n2, psgn, pix2mesh, dmc
+from im2mesh import onet  # r2n2, psgn, pix2mesh, dmc
 from im2mesh import preprocess
 
 method_dict = {
     "onet": onet,
-    "r2n2": r2n2,
-    "psgn": psgn,
-    "pix2mesh": pix2mesh,
-    "dmc": dmc,
+    # "r2n2": r2n2,
+    # "psgn": psgn,
+    # "pix2mesh": pix2mesh,
+    # "dmc": dmc,
 }
 '''
 TODO: torchvision transforms codes -> tensorflow

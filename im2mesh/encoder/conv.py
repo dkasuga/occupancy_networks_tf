@@ -12,6 +12,7 @@ class ConvEncoder(tf.keras.Model):
     Args:
         c_dim (int): output dimension of latent embedding
     '''
+
     def __init__(self, c_dim=128):
         super().__init__()
         self.conv0 = tf.keras.Conv2D(32, 3, stride=2)
@@ -95,7 +96,7 @@ class ConvEncoder(tf.keras.Model):
 #         return out
 
 
-class Resnet50(nn.Module):
+class Resnet50(tf.keras.Model):
     r''' ResNet-50 encoder network.
 
     Args:
@@ -103,6 +104,7 @@ class Resnet50(nn.Module):
         normalize (bool): whether the input images should be normalized
         use_linear (bool): whether a final linear layer should be used
     '''
+
     def __init__(self, c_dim, normalize=True, use_linear=True):
         super().__init__()
         self.normalize = normalize
@@ -127,7 +129,7 @@ class Resnet50(nn.Module):
         return out
 
 
-class Resnet101(nn.Module):
+class Resnet101(tf.keras.Model):
     r''' ResNet-101 encoder network.
 
     Args:
@@ -135,6 +137,7 @@ class Resnet101(nn.Module):
         normalize (bool): whether the input images should be normalized
         use_linear (bool): whether a final linear layer should be used
     '''
+
     def __init__(self, c_dim, normalize=True, use_linear=True):
         super().__init__()
         self.normalize = normalize

@@ -1,4 +1,3 @@
-import torch
 from im2mesh import config
 from im2mesh.checkpoints import CheckpointIO
 from im2mesh.utils.io import export_pointcloud
@@ -17,6 +16,7 @@ class PSGNPreprocessor:
         device (device): pytorch device
         model_file (str): model file
     '''
+
     def __init__(self,
                  cfg_path,
                  pointcloud_n,
