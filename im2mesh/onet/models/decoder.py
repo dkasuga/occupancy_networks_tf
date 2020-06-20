@@ -100,7 +100,7 @@ class DecoderCBatchNorm(tf.keras.Model):
         if not z_dim == 0:
             self.fc_z = tf.keras.layers.Dense(hidden_size)
 
-        self.fc_p = tf.Conv1D(hidden_size, 1)
+        self.fc_p = tf.keras.layers.Conv1D(hidden_size, 1)
 
         self.block0 = CResnetBlockConv1d(hidden_size, legacy=legacy)
         self.block1 = CResnetBlockConv1d(hidden_size, legacy=legacy)
