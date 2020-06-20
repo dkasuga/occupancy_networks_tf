@@ -1,8 +1,6 @@
 # Copyright 2020 The TensorFlow Authors
 
 from im2mesh.data.core import (Shapes3dDataset, )
-from im2mesh.data.dataloader import (
-    DataLoader, )
 from im2mesh.data.fields import (
     IndexField,
     CategoryField,
@@ -24,7 +22,6 @@ __all__ = [
     # Core
     Shapes3dDataset,
     # Dataloader
-    DataLoader,
     # Fields
     IndexField,
     CategoryField,
