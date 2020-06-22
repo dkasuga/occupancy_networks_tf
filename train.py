@@ -74,7 +74,7 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
 # optimizer = optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
 trainer = config.get_trainer(model, optimizer, cfg)
 
-checkpoint_io = CheckpointIO(out_dir, model=model)
+checkpoint_io = CheckpointIO(model, out_dir)
 try:
     load_dict = checkpoint_io.load('model.ckpt')
 except FileExistsError:
@@ -115,10 +115,10 @@ while True:
     epoch_it += 1
 #     scheduler.step()
 
-    for batch in train_loader:
+    for batch in train_dataset:
         it += 1
         loss = trainer.train_step(batch)
-        logger.add_scalar('train/loss', loss, it)
+        # logger.add_scalar('train/loss', loss, it)
 
         # Print output
         if print_every > 0 and (it % print_every) == 0:
@@ -143,13 +143,13 @@ while True:
                                loss_val_best=metric_val_best)
         # Run validation
         if validate_every > 0 and (it % validate_every) == 0:
-            eval_dict = trainer.evaluate(val_loader)
+            eval_dict = trainer.evaluate(val_dataset)
             metric_val = eval_dict[model_selection_metric]
             print('Validation metric (%s): %.4f'
                   % (model_selection_metric, metric_val))
 
-            for k, v in eval_dict.items():
-                logger.add_scalar('val/%s' % k, v, it)
+            # for k, v in eval_dict.items():
+            # logger.add_scalar('val/%s' % k, v, it)
 
             if model_selection_sign * (metric_val - metric_val_best) > 0:
                 metric_val_best = metric_val

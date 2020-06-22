@@ -50,7 +50,7 @@ class OccupancyNetwork(tf.keras.Model):
 
         self.p0_z = p0_z
 
-    def call(self, p, inputs, sample=True, **kwargs):
+    def call(self, p, inputs, sample=True, training=False, **kwargs):
         """ Performs a forward pass through the network.
 
         Args:
@@ -59,12 +59,12 @@ class OccupancyNetwork(tf.keras.Model):
             sample (bool): whether to sample for z
         """
         batch_size = p.shape[0]
-        c = self.encode_inputs(inputs)
+        c = self.encode_inputs(inputs, training=training)
         z = self.get_z_from_prior([batch_size], sample=sample)
-        p_r = self.decode(p, z, c, **kwargs)
+        p_r = self.decode(p, z, c, **kwargs, training=training)
         return p_r
 
-    def compute_elbo(self, p, occ, inputs, **kwargs):
+    def compute_elbo(self, p, occ, inputs, training=False, **kwargs):
         """ Computes the expectation lower bound.
 
         Args:
@@ -72,15 +72,15 @@ class OccupancyNetwork(tf.keras.Model):
             occ (tensor): occupancy values for p
             inputs (tensor): conditioning input
         """
-        c = self.encode_inputs(inputs)
-        q_z = self.infer_z(p, occ, c, **kwargs)
+        c = self.encode_inputs(inputs, training=training)
+        q_z = self.infer_z(p, occ, c, training=training, **kwargs)
         # reparameterize
         mean = q_z.mean()
         logvar = tf.math.log(q_z.variance())
         eps = tf.random.normal(shape=mean.shape)
         z = eps * tf.exp(logvar * 0.5) + mean
 
-        p_r = self.decode(p, z, c, **kwargs)
+        p_r = self.decode(p, z, c, training=training, **kwargs)
 
         # todo
         # rec_error = -p_r.log_prob(occ).sum(dim=-1)  # todo log_prob
@@ -92,7 +92,7 @@ class OccupancyNetwork(tf.keras.Model):
 
         return elbo, rec_error, kl
 
-    def encode_inputs(self, inputs):
+    def encode_inputs(self, inputs, training=False):
         """ Encodes the input.
 
         Args:
@@ -100,14 +100,14 @@ class OccupancyNetwork(tf.keras.Model):
         """
 
         if self.encoder is not None:
-            c = self.encoder(inputs)
+            c = self.encoder(inputs, training=training)
         else:
             # Return inputs?
             c = tf.zeros([inputs.shape[0], 0], tf.float32)
 
         return c
 
-    def decode(self, p, z, c, **kwargs):
+    def decode(self, p, z, c, training=False, **kwargs):
         """ Returns occupancy probabilities for the sampled points.
 
         Args:
@@ -116,11 +116,11 @@ class OccupancyNetwork(tf.keras.Model):
             c (tensor): latent conditioned code c
         """
 
-        logits = self.decoder(p, z, c, **kwargs)
+        logits = self.decoder(p, z, c, training=training, **kwargs)
         p_r = tfp.distributions.Bernoulli(logits=logits)
         return p_r
 
-    def infer_z(self, p, occ, c, **kwargs):
+    def infer_z(self, p, occ, c, training=False, **kwargs):
         """ Infers z.
 
         Args:
@@ -129,7 +129,8 @@ class OccupancyNetwork(tf.keras.Model):
             c (tensor): latent conditioned code c
         """
         if self.encoder_latent is not None:
-            mean_z, logstd_z = self.encoder_latent(p, occ, c, **kwargs)
+            mean_z, logstd_z = self.encoder_latent(
+                p, occ, c, training=training, **kwargs)
         else:
             batch_size = p.shape[0]
             mean_z = tf.zeros([batch_size, 0], tf.float32)

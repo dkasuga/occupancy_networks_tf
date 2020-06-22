@@ -78,7 +78,7 @@ class Trainer(BaseTrainer):
         kwargs = {}
 
         elbo, rec_error, kl = self.model.compute_elbo(
-            points, occ, inputs, **kwargs)
+            points, occ, inputs, training=False, **kwargs)
 
         eval_dict["loss"] = -float(tf.reduce_mean(elbo))
         eval_dict["rec_error"] = float(tf.reduce_mean(rec_error))
@@ -88,7 +88,7 @@ class Trainer(BaseTrainer):
         batch_size = points.shape[0]
 
         p_out = self.model(points_iou, inputs,
-                           sample=self.eval_sample, **kwargs)
+                           sample=self.eval_sample, training=False, **kwargs)
 
         occ_iou_np = (occ_iou >= 0.5).numpy()
         occ_iou_hat_np = (p_out.probs >= threshold).numpy()
@@ -105,7 +105,7 @@ class Trainer(BaseTrainer):
             )
 
             p_out = self.model(points_voxels, inputs,
-                               sample=self.eval_sample, **kwargs)
+                               sample=self.eval_sample, training=False, **kwargs)
 
             voxels_occ_np = (voxels_occ >= 0.5).numpy()
             occ_hat_np = (p_out.probs >= threshold).numpy()
@@ -130,7 +130,8 @@ class Trainer(BaseTrainer):
         p = tf.broadcast_to(p, [batch_size, *p.shape])
 
         kwargs = {}
-        p_r = self.model(p, inputs, sample=self.eval_sample, **kwargs)
+        p_r = self.model(p, inputs, sample=self.eval_sample,
+                         training=False, **kwargs)
 
         occ_hat = tf.reshape(p_r.probs, [batch_size, *shape])
         voxels_out = (occ_hat >= self.threshold).numpy()
@@ -142,7 +143,7 @@ class Trainer(BaseTrainer):
                 voxels_out[i], os.path.join(self.vis_dir, "%03d.png" % i)
             )
 
-    def compute_loss(self, data):
+    def compute_loss(self, data, training=False):
         """ Computes the loss.
 
         Args:
@@ -154,8 +155,8 @@ class Trainer(BaseTrainer):
 
         kwargs = {}
 
-        c = self.model.encode_inputs(inputs)
-        q_z = self.model.infer_z(p, occ, c, **kwargs)
+        c = self.model.encode_inputs(inputs, training=training)
+        q_z = self.model.infer_z(p, occ, c, training=training, **kwargs)
         # z = q_z.rsample()
         # reparameterize
         # mean = q_z.mean()
@@ -171,7 +172,7 @@ class Trainer(BaseTrainer):
         loss = tf.reduce_mean(kl)
 
         # General points
-        logits = self.model.decode(p, z, c, **kwargs).logits
+        logits = self.model.decode(p, z, c, training=training, **kwargs).logits
         # loss_i = F.binary_cross_entropy_with_logits(logits,
         #                                             occ,
         #                                             reduction="none")
