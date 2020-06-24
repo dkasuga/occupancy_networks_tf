@@ -120,14 +120,13 @@ class Shapes3dDataset(object):
         Args:
             idx (int): ID of data point
         '''
-        indexes = []
+        indexes = {}
         for idx in range(self._index, min(self._index + self.batch_size, len(self.models))):
             category = self.models[idx]['category']
             model = self.models[idx]['model']
             c_idx = self.metadata[category]['idx']
 
             model_path = os.path.join(self.dataset_folder, category, model)
-            data = {}
 
             for field_name, field in self.fields.items():
                 try:
@@ -145,15 +144,26 @@ class Shapes3dDataset(object):
                 if isinstance(field_data, dict):
                     for k, v in field_data.items():
                         if k is None:
-                            data[field_name] = v
+                            if field_name not in indexes:
+                                indexes[field_name] = [v]
+                            else:
+                                indexes[field_name].append(v)
                         else:
-                            data['%s.%s' % (field_name, k)] = v
+                            if '%s.%s' % (field_name, k) not in indexes:
+                                indexes['%s.%s' % (field_name, k)] = [v]
+                            else:
+                                indexes['%s.%s' % (field_name, k)].append(v)
                 else:
-                    data[field_name] = field_data
+                    if field_name not in indexes:
+                        indexes[field_name] = [field_data]
+                    else:
+                        indexes[field_name].append(field_data)
 
-            if self.transform is not None:
-                data = self.transform(data)
-            indexes.append(data)
+            # if self.transform is not None:
+                # data = self.transform(data)
+
+        for k, v in indexes.items():
+            indexes[k] = tf.stack(v)
 
         self._index += self.batch_size
 
