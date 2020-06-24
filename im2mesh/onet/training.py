@@ -160,7 +160,7 @@ class Trainer(BaseTrainer):
         # z = q_z.rsample()
         # reparameterize
         # mean = q_z.mean()
-        mean = tf.reduce_mean(q_z)
+        mean = q_z.mean()
         logvar = tf.math.log(q_z.variance())
         eps = tf.random.normal(shape=mean.shape)
         z = eps * tf.exp(logvar * 0.5) + mean
@@ -172,6 +172,7 @@ class Trainer(BaseTrainer):
         loss = tf.reduce_mean(kl)
 
         # General points
+        print("c.shape:{}".format(c.shape))
         logits = self.model.decode(p, z, c, training=training, **kwargs).logits
         # loss_i = F.binary_cross_entropy_with_logits(logits,
         #                                             occ,
