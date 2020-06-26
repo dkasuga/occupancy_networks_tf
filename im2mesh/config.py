@@ -202,14 +202,17 @@ def get_inputs_field(mode, cfg):
             def preprocess(image):
                 # image = tf.image.crop_and_resize(
                 #     image, crop_size=cfg["data"]["img_size"])  # CHECK
-                image = tf.image.resize(image, cfg["data"]["img_size"])
+                image = tf.image.resize(
+                    image, [cfg["data"]["img_size"], cfg["data"]["img_size"]])
                 image /= 255.0
                 return image
 
             transform = preprocess
         else:
             def preprocess(image):
-                image = tf.image.resize(image, cfg["data"]["img_size"])
+                # image = image[tf.newaxis, ...]
+                image = tf.image.resize(
+                    image, [cfg["data"]["img_size"], cfg["data"]["img_size"]])
                 image /= 255.0
                 return image
 
