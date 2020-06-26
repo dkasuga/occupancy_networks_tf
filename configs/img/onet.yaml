@@ -7,7 +7,7 @@ data:
 model:
   encoder_latent: null
   decoder: cbatchnorm
-  encoder: resnet50
+  encoder: resnet18
   c_dim: 256
   z_dim: 0
 training:
