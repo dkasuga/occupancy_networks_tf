@@ -192,7 +192,7 @@ class AffineLayer(tf.keras.Model):
     def call(self, x, p):
         assert (x.shape[0] == p.shape[0])
         assert (p.shape[2] == self.dim)
-        batch_size = x.size(0)
+        batch_size = x.shape[0]
         A = tf.reshape(self.fc_A(x), [batch_size, 3, 3])
         b = tf.reshape(self.fc_b(x), [batch_size, 1, 3])
         out = tf.linalg.matmul(p, A) + b
@@ -241,10 +241,10 @@ class CBatchNorm1d(tf.keras.Model):
 
     def call(self, x, c):
         assert (x.shape[0] == c.shape[0])
-        assert (c.shape[3] == self.c_dim)
+        assert (c.shape[1] == self.c_dim)
 
         # c is assumed to be of size batch_size x c_dim x T
-        if len(c.size()) == 2:
+        if tf.rank(c) == 2:
             c = tf.expand_dims(c, 2)
 
         # Affine mapping
