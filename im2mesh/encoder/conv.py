@@ -40,32 +40,111 @@ class ConvEncoder(tf.keras.Model):
         return out
 
 
-# class Resnet18(nn.Module):
-#     r''' ResNet-18 encoder network for image input.
-#     Args:
-#         c_dim (int): output dimension of the latent embedding
-#         normalize (bool): whether the input images should be normalized
-#         use_linear (bool): whether a final linear layer should be used
-#     '''
-#     def __init__(self, c_dim, normalize=True, use_linear=True):
-#         super().__init__()
-#         self.normalize = normalize
-#         self.use_linear = use_linear
-#         self.features = models.resnet18(pretrained=True)
-#         self.features.fc = nn.Sequential()
-#         if use_linear:
-#             self.fc = nn.Linear(512, c_dim)
-#         elif c_dim == 512:
-#             self.fc = nn.Sequential()
-#         else:
-#             raise ValueError('c_dim must be 512 if use_linear is False')
+class BasicBlock(tf.keras.layers.Layer):
 
-#     def forward(self, x):
-#         if self.normalize:
-#             x = normalize_imagenet(x)
-#         net = self.features(x)
-#         out = self.fc(net)
-#         return out
+    def __init__(self, filter_num, stride=1):
+        super(BasicBlock, self).__init__()
+        self.conv1 = tf.keras.layers.Conv2D(filters=filter_num,
+                                            kernel_size=(3, 3),
+                                            strides=stride,
+                                            padding="same")
+        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.conv2 = tf.keras.layers.Conv2D(filters=filter_num,
+                                            kernel_size=(3, 3),
+                                            strides=1,
+                                            padding="same")
+        self.bn2 = tf.keras.layers.BatchNormalization()
+        if stride != 1:
+            self.downsample = tf.keras.Sequential()
+            self.downsample.add(tf.keras.layers.Conv2D(filters=filter_num,
+                                                       kernel_size=(1, 1),
+                                                       strides=stride))
+            self.downsample.add(tf.keras.layers.BatchNormalization())
+        else:
+            self.downsample = lambda x: x
+
+    def call(self, inputs, training=None, **kwargs):
+        residual = self.downsample(inputs)
+
+        x = self.conv1(inputs)
+        x = self.bn1(x, training=training)
+        x = tf.nn.relu(x)
+        x = self.conv2(x)
+        x = self.bn2(x, training=training)
+
+        output = tf.nn.relu(tf.keras.layers.add([residual, x]))
+
+        return output
+
+
+def make_basic_block_layer(filter_num, blocks, stride=1):
+    res_block = tf.keras.Sequential()
+    res_block.add(BasicBlock(filter_num, stride=stride))
+
+    for _ in range(1, blocks):
+        res_block.add(BasicBlock(filter_num, stride=1))
+
+    return res_block
+
+
+class Resnet18(tf.keras.Model):
+    r''' ResNet-18 encoder network for image input.
+    Args:
+        c_dim (int): output dimension of the latent embedding
+        normalize (bool): whether the input images should be normalized
+        use_linear (bool): whether a final linear layer should be used
+    '''
+
+    def __init__(self, c_dim, normalize=True, use_linear=True):
+        super().__init__()
+        self.normalize = normalize
+        self.use_linear = use_linear
+
+        self.conv1 = tf.keras.layers.Conv2D(filters=64,
+                                            kernel_size=(7, 7),
+                                            strides=2,
+                                            padding="same")
+        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.pool1 = tf.keras.layers.MaxPool2D(pool_size=(3, 3),
+                                               strides=2,
+                                               padding="same")
+
+        self.layer1 = make_basic_block_layer(filter_num=64,
+                                             blocks=2)
+        self.layer2 = make_basic_block_layer(filter_num=128,
+                                             blocks=2,
+                                             stride=2)
+        self.layer3 = make_basic_block_layer(filter_num=256,
+                                             blocks=2,
+                                             stride=2)
+        self.layer4 = make_basic_block_layer(filter_num=512,
+                                             blocks=2,
+                                             stride=2)
+
+        self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
+
+        if use_linear:
+            self.fc = tf.keras.layers.Dense(c_dim)
+        elif c_dim == 512:
+            # self.fc = nn.Sequential() # original
+            self.fc = tf.keras.Sequential()  # CHECK
+        else:
+            raise ValueError('c_dim must be 512 if use_linear is False')
+
+    def call(self, x):
+        if self.normalize:
+            x = normalize_imagenet(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = tf.nn.relu(x)
+        x = self.pool1(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.avgpool(x)
+        out = self.fc(x)
+        return out
 
 # class Resnet34(nn.Module):
 #     r''' ResNet-34 encoder network.
@@ -124,6 +203,9 @@ class Resnet50(tf.keras.Model):
         if self.normalize:
             x = normalize_imagenet(x)
         net = self.features(x)
+        print("##################################")
+        print("net.shape:{}".format(net.shape))
+        print("##################################")
         out = self.fc(net)
         return out
 
