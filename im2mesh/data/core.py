@@ -55,11 +55,6 @@ class Shapes3dDataset(object):
         '''
         # Attributes
         self.batch_size = batch_size
-        self.shuffle = shuffle
-        if random_state is None:
-            random_state = np.random.RandomState(1234)
-        self.random_state = random_state
-        self._index = 0
         self.dataset_folder = dataset_folder
         self.fields = fields
         self.no_except = no_except
@@ -102,7 +97,6 @@ class Shapes3dDataset(object):
                 for m in models_c
             ]
 
-        self._reset()
         print("ShapeNet3D dataset __init__ complete")
 
     def __len__(self):
@@ -112,21 +106,19 @@ class Shapes3dDataset(object):
         b = self.batch_size
         return N // b + bool(N % b)
 
-    def __iter__(self):
-        return self
-
-    def __next__(self):
+    def generator(self):
         ''' Returns an item of the dataset.
         Args:
             idx (int): ID of data point
         '''
-        indexes = {}
-        for idx in range(self._index, min(self._index + self.batch_size, len(self.models))):
+
+        for idx in range(len(self.models)):
             category = self.models[idx]['category']
             model = self.models[idx]['model']
             c_idx = self.metadata[category]['idx']
 
             model_path = os.path.join(self.dataset_folder, category, model)
+            data = {}
 
             for field_name, field in self.fields.items():
                 try:
@@ -144,40 +136,57 @@ class Shapes3dDataset(object):
                 if isinstance(field_data, dict):
                     for k, v in field_data.items():
                         if k is None:
-                            if field_name not in indexes:
-                                indexes[field_name] = [v]
-                            else:
-                                indexes[field_name].append(v)
+                            data[field_name] = v
                         else:
-                            if '%s.%s' % (field_name, k) not in indexes:
-                                indexes['%s.%s' % (field_name, k)] = [v]
-                            else:
-                                indexes['%s.%s' % (field_name, k)].append(v)
+                            data['%s.%s' % (field_name, k)] = v
                 else:
-                    if field_name not in indexes:
-                        indexes[field_name] = [field_data]
+                    data[field_name] = field_data
+
+            if self.transform is not None:
+                data = self.transform(data)
+
+            yield data
+
+    def dataset_keys(self):
+        category = self.models[0]['category']
+        model = self.models[0]['model']
+        c_idx = self.metadata[category]['idx']
+
+        model_path = os.path.join(self.dataset_folder, category, model)
+        data = {}
+
+        for field_name, field in self.fields.items():
+            try:
+                field_data = field.load(model_path, 0, c_idx)
+            except Exception:
+                if self.no_except:
+                    logger.warn(
+                        'Error occured when loading field %s of model %s'
+                        % (field_name, model)
+                    )
+                    return None
+                else:
+                    raise
+
+            if isinstance(field_data, dict):
+                for k, v in field_data.items():
+                    if k is None:
+                        data[field_name] = v
                     else:
-                        indexes[field_name].append(field_data)
+                        data['%s.%s' % (field_name, k)] = v
+            else:
+                data[field_name] = field_data
 
-            # if self.transform is not None:
-                # data = self.transform(data)
+        return data.keys()
 
-        for k, v in indexes.items():
-            indexes[k] = tf.stack(v)
+    def dataset(self):
+        dataset = tf.data.Dataset.from_generator(
+            self.generator, output_types={k: tf.float32 for k in self.dataset_keys()})
+        dataset = dataset.batch(batch_size=self.batch_size)
+        dataset = dataset.repeat(count=1000)
+        # dataset = dataset.shuffle(buffer_size=len(self.models))
 
-        self._index += self.batch_size
-
-        if self._index >= len(self.models):
-            self._reset()
-            # raise StopIteration()
-
-        return indexes
-
-    def _reset(self):
-        if self.shuffle:
-            self.models = shuffle(self.models,
-                                  random_state=self.random_state)
-        self._index = 0
+        return dataset
 
     def get_model_dict(self, idx):
         return self.models[idx]

@@ -57,11 +57,11 @@ if not os.path.exists(out_dir):
 # Dataset
 # specify path
 train_dataset = config.get_dataset(
-    'train', cfg, batch_size=batch_size, shuffle=True)
+    'train', cfg, batch_size=batch_size, shuffle=True).dataset()
 val_dataset = config.get_dataset(
-    'val', cfg, batch_size=10, shuffle=False)
+    'val', cfg, batch_size=10, shuffle=False).dataset()
 vis_dataset = config.get_dataset(
-    'val', cfg, batch_size=12, shuffle=True)
+    'val', cfg, batch_size=12, shuffle=True).dataset()
 
 data_vis = next(iter(vis_dataset))
 
@@ -107,9 +107,9 @@ validate_every = cfg['training']['validate_every']
 visualize_every = cfg['training']['visualize_every']
 
 # Print model
-nparameters = model.count_params()
-model.summary()
-print('Total number of parameters: %d' % nparameters)
+# nparameters = model.count_params()
+# model.summary()
+# print('Total number of parameters: %d' % nparameters)
 
 while True:
     epoch_it += 1
@@ -117,6 +117,7 @@ while True:
 
     for batch in train_dataset:
         it += 1
+        print(batch)
         loss = trainer.train_step(batch)
         # logger.add_scalar('train/loss', loss, it)
 
