@@ -122,13 +122,14 @@ class DecoderCBatchNorm(tf.keras.Model):
 
     def call(self, p, z, c, **kwargs):
         # p = p.transpose(1, 2)
-        p = tf.transpose(p, perm=[0, 2, 1])
+        # p = tf.transpose(p, perm=[0, 2, 1])
+
         # batch_size, D, T = p.size()
-        batch_size, D, T = p.get_shape()
+        # batch_size, D, T = p.get_shape()
         net = self.fc_p(p)
 
         if self.z_dim != 0:
-            net_z = tf.expand_dims(self.fc_z(z), 2)  # CHECK
+            net_z = tf.expand_dims(self.fc_z(z), 1)  # CHECK
             net = net + net_z
 
         net = self.block0(net, c)
@@ -138,7 +139,8 @@ class DecoderCBatchNorm(tf.keras.Model):
         net = self.block4(net, c)
 
         out = self.fc_out(self.actvn(self.bn(net, c)))
-        out = tf.squeeze(out, 1)
+
+        out = tf.squeeze(out, 2)
 
         return out
 

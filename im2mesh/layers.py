@@ -245,7 +245,7 @@ class CBatchNorm1d(tf.keras.Model):
 
         # c is assumed to be of size batch_size x c_dim x T
         if tf.rank(c) == 2:
-            c = tf.expand_dims(c, 2)
+            c = tf.expand_dims(c, 1)
 
         # Affine mapping
         gamma = self.conv_gamma(c)
