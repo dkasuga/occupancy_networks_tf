@@ -91,7 +91,7 @@ class Trainer(BaseTrainer):
                            sample=self.eval_sample, training=False, **kwargs)
 
         occ_iou_np = (occ_iou >= 0.5).numpy()
-        occ_iou_hat_np = (p_out.probs >= threshold).numpy()
+        occ_iou_hat_np = (p_out.probs_parameter() >= threshold).numpy()
         iou = compute_iou(occ_iou_np, occ_iou_hat_np).mean()
         eval_dict["iou"] = float(iou)
 
@@ -108,7 +108,7 @@ class Trainer(BaseTrainer):
                                sample=self.eval_sample, training=False, **kwargs)
 
             voxels_occ_np = (voxels_occ >= 0.5).numpy()
-            occ_hat_np = (p_out.probs >= threshold).numpy()
+            occ_hat_np = (p_out.probs_parameter() >= threshold).numpy()
             iou_voxels = compute_iou(voxels_occ_np, occ_hat_np).mean()
 
             eval_dict["iou_voxels"] = float(iou_voxels)
@@ -133,7 +133,7 @@ class Trainer(BaseTrainer):
         p_r = self.model(p, inputs, sample=self.eval_sample,
                          training=False, **kwargs)
 
-        occ_hat = tf.reshape(p_r.probs, [batch_size, *shape])
+        occ_hat = tf.reshape(p_r.probs_parameter(), [batch_size, *shape])
         voxels_out = (occ_hat >= self.threshold).numpy()
 
         for i in trange(batch_size):
@@ -155,6 +155,11 @@ class Trainer(BaseTrainer):
 
         kwargs = {}
 
+        print("################## debug ##################")
+        print("inputs.shape:")
+        print(inputs.shape)
+        print("################## debug ##################")
+
         c = self.model.encode_inputs(inputs, training=training)
         q_z = self.model.infer_z(p, occ, c, training=training, **kwargs)
         # z = q_z.rsample()
@@ -164,6 +169,10 @@ class Trainer(BaseTrainer):
         logvar = tf.math.log(q_z.variance())
         eps = tf.random.normal(shape=mean.shape)
         z = eps * tf.exp(logvar * 0.5) + mean
+        print("################## debug ##################")
+        print("z.shape:")
+        print(z.shape)
+        print("################## debug ##################")
 
         # KL-divergence
         kl = tf.reduce_sum(
@@ -172,11 +181,17 @@ class Trainer(BaseTrainer):
         loss = tf.reduce_mean(kl)
 
         # General points
+        print("################## debug ##################")
         print("c.shape:{}".format(c.shape))
+        print("################## debug ##################")
         logits = self.model.decode(p, z, c, training=training, **kwargs).logits
         # loss_i = F.binary_cross_entropy_with_logits(logits,
         #                                             occ,
         #                                             reduction="none")
+        print("################## debug ##################")
+        print("logits.shape:{}".format(logits.shape))
+        print("################## debug ##################")
+
         loss_i = tf.nn.sigmoid_cross_entropy_with_logits(occ, logits)
         loss = loss + tf.reduce_mean(tf.reduce_sum(loss_i, axis=-1))
 
