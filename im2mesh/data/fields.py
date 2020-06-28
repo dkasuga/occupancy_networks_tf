@@ -222,6 +222,8 @@ class VoxelsField(Field):
         if self.transform is not None:
             voxels = self.transform(voxels)
 
+        voxels = tf.convert_to_tensor(voxels, np.float32)
+
         return voxels
 
     def check_complete(self, files):
@@ -279,6 +281,9 @@ class PointCloudField(Field):
         if self.transform is not None:
             data = self.transform(data)
 
+        for key, v in data.items():
+            data[key] = tf.convert_to_tensor(v, np.float32)
+
         return data
 
     def check_complete(self, files):
@@ -322,6 +327,9 @@ class MeshField(Field):
         mesh = trimesh.load(file_path, process=False)
         if self.transform is not None:
             mesh = self.transform(mesh)
+
+        mesh.vertices = tf.convert_to_tensor(mesh.vertices, np.float32)
+        mesh.faces = tf.convert_to_tensor(mesh.faces, np.uint32)
 
         data = {
             'verts': mesh.vertices,
