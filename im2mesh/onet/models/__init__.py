@@ -61,7 +61,9 @@ class OccupancyNetwork(tf.keras.Model):
         batch_size = p.shape[0]
         c = self.encode_inputs(inputs, training=training)
         z = self.get_z_from_prior([batch_size], sample=sample)
+
         p_r = self.decode(p, z, c, **kwargs, training=training)
+
         return p_r
 
     def compute_elbo(self, p, occ, inputs, training=False, **kwargs):

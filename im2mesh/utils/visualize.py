@@ -58,12 +58,12 @@ def visualize_voxels(voxels, out_file=None, show=False):
         show (bool): whether the plot should be shown
     """
     # Use numpy
-    # voxels = voxels.numpy()
     voxels = np.asarray(voxels)
     # Create plot
     fig = plt.figure()
     ax = fig.gca(projection=Axes3D.name)
     voxels = voxels.transpose(2, 0, 1)  # CHECK
+
     ax.voxels(voxels, edgecolor="k")
     ax.set_xlabel("Z")
     ax.set_ylabel("X")
