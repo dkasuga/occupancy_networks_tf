@@ -155,11 +155,6 @@ class Trainer(BaseTrainer):
 
         kwargs = {}
 
-        print("################## debug ##################")
-        print("inputs.shape:")
-        print(inputs.shape)
-        print("################## debug ##################")
-
         c = self.model.encode_inputs(inputs, training=training)
         q_z = self.model.infer_z(p, occ, c, training=training, **kwargs)
         # z = q_z.rsample()
@@ -169,10 +164,6 @@ class Trainer(BaseTrainer):
         logvar = tf.math.log(q_z.variance())
         eps = tf.random.normal(shape=mean.shape)
         z = eps * tf.exp(logvar * 0.5) + mean
-        print("################## debug ##################")
-        print("z.shape:")
-        print(z.shape)
-        print("################## debug ##################")
 
         # KL-divergence
         kl = tf.reduce_sum(
@@ -181,16 +172,10 @@ class Trainer(BaseTrainer):
         loss = tf.reduce_mean(kl)
 
         # General points
-        print("################## debug ##################")
-        print("c.shape:{}".format(c.shape))
-        print("################## debug ##################")
         logits = self.model.decode(p, z, c, training=training, **kwargs).logits
         # loss_i = F.binary_cross_entropy_with_logits(logits,
         #                                             occ,
         #                                             reduction="none")
-        print("################## debug ##################")
-        print("logits.shape:{}".format(logits.shape))
-        print("################## debug ##################")
 
         loss_i = tf.nn.sigmoid_cross_entropy_with_logits(occ, logits)
         loss = loss + tf.reduce_mean(tf.reduce_sum(loss_i, axis=-1))
