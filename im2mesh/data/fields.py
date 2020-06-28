@@ -95,6 +95,7 @@ class ImagesField(Field):
 
         # image = Image.open(filename).convert('RGB')
         # image = np.array(image).astype(np.float32)
+        # image = tf.convert_to_tensor(image, np.float32)
 
         image_r = tf.io.read_file(filename)
         image = tf.image.decode_image(image_r, channels=3, dtype=tf.float32)

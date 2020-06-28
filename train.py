@@ -26,11 +26,11 @@ parser.add_argument('--exit-after', type=int, default=-1,
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
 
-gpu_id = args.gpu
-if tf.__version__ >= "2.1.0":
-    physical_devices = tf.config.list_physical_devices('GPU')
-    print(tf.config.list_physical_devices('GPU'))
-    tf.config.set_visible_devices(physical_devices[gpu_id], 'GPU')
+# gpu_id = args.gpu
+# if tf.__version__ >= "2.1.0":
+#     physical_devices = tf.config.list_physical_devices('GPU')
+#     print(tf.config.list_physical_devices('GPU'))
+#     tf.config.set_visible_devices(physical_devices[gpu_id], 'GPU')
 
 # Set t0
 t0 = time.time()
@@ -57,12 +57,12 @@ if not os.path.exists(out_dir):
 # Dataset
 # specify path
 train_dataset = config.get_dataset(
-    'train', cfg, batch_size=batch_size, shuffle=True).dataset()
+    'train', cfg, batch_size=batch_size, shuffle=True, repeat_count=1).dataset()
 val_dataset = config.get_dataset(
-    'val', cfg, batch_size=10, shuffle=False).dataset()
+    'val', cfg, batch_size=10, shuffle=False, repeat_count=1).dataset()
 
 vis_dataset = config.get_dataset(
-    'val', cfg, batch_size=12, shuffle=True).dataset()
+    'val', cfg, batch_size=12, shuffle=True, repeat_count=1000).dataset()
 
 data_vis = next(iter(vis_dataset))
 
@@ -128,10 +128,10 @@ while True:
 
         # checkpoint_io now has problems
 
-        # # Visualize output
-        # if visualize_every > 0 and (it % visualize_every) == 0:
-        #     print('Visualizing')
-        #     trainer.visualize(data_vis)
+        # Visualize output
+        if visualize_every > 0 and (it % visualize_every) == 0:
+            print('Visualizing')
+            trainer.visualize(data_vis)
 
         # Save checkpoint
         # if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
@@ -152,7 +152,7 @@ while True:
         #     print("eval_dict")
         #     metric_val = eval_dict[model_selection_metric]
         #     print('validation metric (%s): %.4f'
-            #   % (model_selection_metric, metric_val))
+        #           % (model_selection_metric, metric_val))
 
             # for k, v in eval_dict.items():
             # logger.add_scalar('val/%s' % k, v, it)

@@ -42,7 +42,7 @@ class Shapes3dDataset(object):
     ''' 3D Shapes dataset class.
     '''
 
-    def __init__(self, dataset_folder, fields, split=None, batch_size=32, shuffle=False, random_state=None,
+    def __init__(self, dataset_folder, fields, split=None, batch_size=32, shuffle=False, repeat_count=1, random_state=None,
                  categories=None, no_except=True, transform=None):
         ''' Initialization of the the 3D shape dataset.
         Args:
@@ -56,6 +56,7 @@ class Shapes3dDataset(object):
         # Attributes
         self.batch_size = batch_size
         self.dataset_folder = dataset_folder
+        self.repeat_count = repeat_count
         self.fields = fields
         self.no_except = no_except
         self.transform = transform
@@ -97,6 +98,7 @@ class Shapes3dDataset(object):
                 for m in models_c
             ]
 
+        print("dataset_size:{}".format(len(self.models)))
         print("ShapeNet3D dataset __init__ complete")
 
     def __len__(self):
@@ -183,7 +185,7 @@ class Shapes3dDataset(object):
         dataset = tf.data.Dataset.from_generator(
             self.generator, output_types={k: tf.float32 for k in self.dataset_keys()})
         dataset = dataset.batch(batch_size=self.batch_size)
-        dataset = dataset.repeat(count=1000)
+        dataset = dataset.repeat(count=self.repeat_count)
         # dataset = dataset.shuffle(buffer_size=len(self.models))
 
         return dataset
