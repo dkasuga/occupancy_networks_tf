@@ -186,7 +186,7 @@ class Shapes3dDataset(object):
         dataset = tf.data.Dataset.from_generator(
             self.generator, output_types={k: tf.float32 for k in self.dataset_keys()})
         # dataset = dataset.shuffle(buffer_size=self.__len__())
-        if self.shuffle = True:
+        if self.shuffle:
             dataset = dataset.shuffle(buffer_size=1000)
         dataset = dataset.batch(batch_size=self.batch_size)
         dataset = dataset.repeat(count=self.repeat_count)
