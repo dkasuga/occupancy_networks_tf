@@ -55,6 +55,7 @@ class Shapes3dDataset(object):
         '''
         # Attributes
         self.batch_size = batch_size
+        self.shuffle = shuffle
         self.dataset_folder = dataset_folder
         self.repeat_count = repeat_count
         self.fields = fields
@@ -184,9 +185,12 @@ class Shapes3dDataset(object):
     def dataset(self):
         dataset = tf.data.Dataset.from_generator(
             self.generator, output_types={k: tf.float32 for k in self.dataset_keys()})
+        # dataset = dataset.shuffle(buffer_size=self.__len__())
+        if self.shuffle = True:
+            dataset = dataset.shuffle(buffer_size=1000)
         dataset = dataset.batch(batch_size=self.batch_size)
         dataset = dataset.repeat(count=self.repeat_count)
-        # dataset = dataset.shuffle(buffer_size=len(self.models))
+        # dataset = dataset.prefetch(buffer_size=AUTOTUNE)
 
         return dataset
 
