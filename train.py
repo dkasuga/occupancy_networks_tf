@@ -60,9 +60,8 @@ train_dataset = config.get_dataset(
     'train', cfg, batch_size=batch_size, shuffle=True, repeat_count=1).dataset()
 val_dataset = config.get_dataset(
     'val', cfg, batch_size=10, shuffle=False, repeat_count=1).dataset()
-
 vis_dataset = config.get_dataset(
-    'val', cfg, batch_size=12, shuffle=True, repeat_count=1000).dataset()
+    'val', cfg, batch_size=12, shuffle=False, repeat_count=1).dataset()
 
 data_vis = next(iter(vis_dataset))
 
