@@ -115,7 +115,7 @@ while True:
     epoch_it += 1
 #     scheduler.step()
 
-    for batch in train_dataset:
+    for batch in train_dataset:  # .batch(64):
         it += 1
         loss = trainer.train_step(batch)
         # logger.add_scalar('train/loss', loss, it)
@@ -128,9 +128,9 @@ while True:
         # checkpoint_io now has problems
 
         # Visualize output
-        if visualize_every > 0 and (it % visualize_every) == 0:
-            print('Visualizing')
-            trainer.visualize(data_vis)
+        # if visualize_every > 0 and (it % visualize_every) == 0:
+        #     print('Visualizing')
+        #     trainer.visualize(data_vis)
 
         # Save checkpoint
         # if (checkpoint_every > 0 and (it % checkpoint_every) == 0):

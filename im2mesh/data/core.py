@@ -7,8 +7,6 @@ import logging
 import numpy as np
 import yaml
 
-from sklearn.utils import shuffle
-
 from tqdm import tqdm
 
 
@@ -49,6 +47,9 @@ class Shapes3dDataset(object):
             dataset_folder (str): dataset folder
             fields (dict): dictionary of fields
             split (str): which split is used
+            batch_size (int):
+            shuffle (bool): shuffle or not
+            repeat_count (int): epoch
             categories (list): list of categories to use
             no_except (bool): no exception
             transform (callable): transformation applied to data points
@@ -61,6 +62,7 @@ class Shapes3dDataset(object):
         self.fields = fields
         self.no_except = no_except
         self.transform = transform
+        self.epoch = 10
 
         # If categories is None, use all subfolders
         if categories is None:
@@ -70,6 +72,8 @@ class Shapes3dDataset(object):
 
         # Read metadata file
         metadata_file = os.path.join(dataset_folder, 'metadata.yaml')
+        print("metadata_file:{}".format(metadata_file))
+        print("categories:{}".format(categories))
 
         if os.path.exists(metadata_file):
             with open(metadata_file, 'r') as f:
@@ -79,6 +83,7 @@ class Shapes3dDataset(object):
                 c: {'id': c, 'name': 'n/a'} for c in categories
             }
 
+        print("self.metadata:{}".format(self.metadata))
         # Set index
         for c_idx, c in enumerate(categories):
             self.metadata[c]['idx'] = c_idx
@@ -98,6 +103,8 @@ class Shapes3dDataset(object):
                 {'category': c, 'model': m}
                 for m in models_c
             ]
+            print(len(self.models))
+        # print(self.models)
 
         print("dataset_size:{}".format(len(self.models)))
         print("ShapeNet3D dataset __init__ complete")
@@ -148,6 +155,7 @@ class Shapes3dDataset(object):
             if self.transform is not None:
                 data = self.transform(data)
 
+            print("category:{}, model:{}".format(category, model))
             yield data
 
     def dataset_keys(self):
@@ -185,12 +193,10 @@ class Shapes3dDataset(object):
     def dataset(self):
         dataset = tf.data.Dataset.from_generator(
             self.generator, output_types={k: tf.float32 for k in self.dataset_keys()})
-        # dataset = dataset.shuffle(buffer_size=self.__len__())
-        if self.shuffle:
-            dataset = dataset.shuffle(buffer_size=1000)
+        dataset.apply(tf.data.experimental.shuffle_and_repeat(
+            self.batch_size * 3, self.epoch))
         dataset = dataset.batch(batch_size=self.batch_size)
-        dataset = dataset.repeat(count=self.repeat_count)
-        # dataset = dataset.prefetch(buffer_size=AUTOTUNE)
+        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
         return dataset
 

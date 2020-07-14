@@ -29,11 +29,11 @@ def visualize_data(data, data_type, out_file):
     """
     if data_type == "img":
         image = tf.cast(data * 255.0, tf.uint8)
-        if tf.rank(data) == 4:
-            row = []
-            for i in range(image.shape[0]):
-                row.append(image[i])
-            image = tf.concat(row, axis=1)
+        # if tf.rank(data) == 4:
+        #     row = []
+        #     for i in range(image.shape[0]):
+        #         row.append(image[i])
+        #     image = tf.concat(row, axis=1)
 
         image = tf.image.encode_png(image)
         with open(out_file, "wb") as fd:
