@@ -7,6 +7,7 @@ import numpy as np
 import os
 import argparse
 import time
+import datetime
 import matplotlib
 matplotlib.use('Agg')
 
@@ -57,11 +58,11 @@ if not os.path.exists(out_dir):
 # Dataset
 # specify path
 train_dataset = config.get_dataset(
-    'train', cfg, batch_size=batch_size, shuffle=True, repeat_count=1).dataset()
+    'train', cfg, batch_size=batch_size, shuffle=True, repeat_count=1, epoch=100).dataset()
 val_dataset = config.get_dataset(
-    'val', cfg, batch_size=10, shuffle=False, repeat_count=1).dataset()
+    'val', cfg, batch_size=10, shuffle=False, repeat_count=1, epoch=1).dataset()
 vis_dataset = config.get_dataset(
-    'val', cfg, batch_size=12, shuffle=False, repeat_count=1).dataset()
+    'val', cfg, batch_size=12, shuffle=False, repeat_count=1, epoch=1).dataset()
 
 data_vis = next(iter(vis_dataset))
 
@@ -111,6 +112,13 @@ visualize_every = cfg['training']['visualize_every']
 # model.summary()
 # print('Total number of parameters: %d' % nparameters)
 
+# log
+current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
+test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
+train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+test_summary_writer = tf.summary.create_file_writer(test_log_dir)
+
 while True:
     epoch_it += 1
 #     scheduler.step()
@@ -122,15 +130,16 @@ while True:
 
         # Print output
         if print_every > 0 and (it % print_every) == 0:
-            print('[Epoch %02d] it=%03d, loss=%.4f'
-                  % (epoch_it, it, loss))
+            print('[Epoch %02d] it=%03d, loss=%.4f' % (epoch_it, it, loss))
+            with train_summary_writer.as_default():
+                tf.summary.scalar('loss', loss, step=it)
 
         # checkpoint_io now has problems
 
         # Visualize output
-        # if visualize_every > 0 and (it % visualize_every) == 0:
-        #     print('Visualizing')
-        #     trainer.visualize(data_vis)
+        if visualize_every > 0 and (it % visualize_every) == 0:
+            print('Visualizing')
+            trainer.visualize(data_vis)
 
         # Save checkpoint
         # if (checkpoint_every > 0 and (it % checkpoint_every) == 0):

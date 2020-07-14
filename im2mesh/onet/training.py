@@ -155,11 +155,6 @@ class Trainer(BaseTrainer):
 
         kwargs = {}
 
-        print("################## debug ##################")
-        print("inputs.shape:")
-        print(inputs.shape)
-        print("################## debug ##################")
-
         c = self.model.encode_inputs(inputs, training=training)
         q_z = self.model.infer_z(p, occ, c, training=training, **kwargs)
         # z = q_z.rsample()

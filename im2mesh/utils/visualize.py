@@ -8,6 +8,8 @@ import im2mesh.common as common
 
 import tensorflow as tf
 
+from PIL import Image
+
 
 def generate_images(tensor):
     images = tf.cast(tensor * 255.0, tf.uint8)
@@ -29,15 +31,17 @@ def visualize_data(data, data_type, out_file):
     """
     if data_type == "img":
         image = tf.cast(data * 255.0, tf.uint8)
+        image = image.numpy()
         # if tf.rank(data) == 4:
         #     row = []
         #     for i in range(image.shape[0]):
         #         row.append(image[i])
         #     image = tf.concat(row, axis=1)
 
-        image = tf.image.encode_png(image)
-        with open(out_file, "wb") as fd:
-            fd.write(image)
+        Image.fromarray(image).save(out_file)
+        # image = tf.image.encode_png(image)
+        # with open(out_file, "wb") as fd:
+        #     fd.write(image)
 
     elif data_type == "voxels":
         visualize_voxels(data, out_file=out_file)
