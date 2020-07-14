@@ -106,7 +106,7 @@ def get_generator(model, cfg):
 
 
 # Datasets
-def get_dataset(mode, cfg, batch_size, shuffle, repeat_count, eandom_state=None, return_idx=False, return_category=False):
+def get_dataset(mode, cfg, batch_size, shuffle, repeat_count, epoch, eandom_state=None, return_idx=False, return_category=False):
     """ Returns the dataset.
 
     Args:
@@ -151,6 +151,7 @@ def get_dataset(mode, cfg, batch_size, shuffle, repeat_count, eandom_state=None,
             batch_size=batch_size,
             shuffle=shuffle,
             repeat_count=repeat_count,
+            epoch=epoch,
             categories=categories,
         )
     elif dataset_type == "kitti":

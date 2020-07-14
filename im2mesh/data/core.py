@@ -6,6 +6,7 @@ import os
 import logging
 import numpy as np
 import yaml
+import random
 
 from tqdm import tqdm
 
@@ -40,7 +41,7 @@ class Shapes3dDataset(object):
     ''' 3D Shapes dataset class.
     '''
 
-    def __init__(self, dataset_folder, fields, split=None, batch_size=32, shuffle=False, repeat_count=1, random_state=None,
+    def __init__(self, dataset_folder, fields, split=None, batch_size=32, shuffle=False, repeat_count=1, epoch=10, random_state=None,
                  categories=None, no_except=True, transform=None):
         ''' Initialization of the the 3D shape dataset.
         Args:
@@ -62,7 +63,7 @@ class Shapes3dDataset(object):
         self.fields = fields
         self.no_except = no_except
         self.transform = transform
-        self.epoch = 10
+        self.epoch = epoch
 
         # If categories is None, use all subfolders
         if categories is None:
@@ -72,8 +73,6 @@ class Shapes3dDataset(object):
 
         # Read metadata file
         metadata_file = os.path.join(dataset_folder, 'metadata.yaml')
-        print("metadata_file:{}".format(metadata_file))
-        print("categories:{}".format(categories))
 
         if os.path.exists(metadata_file):
             with open(metadata_file, 'r') as f:
@@ -83,7 +82,6 @@ class Shapes3dDataset(object):
                 c: {'id': c, 'name': 'n/a'} for c in categories
             }
 
-        print("self.metadata:{}".format(self.metadata))
         # Set index
         for c_idx, c in enumerate(categories):
             self.metadata[c]['idx'] = c_idx
@@ -103,10 +101,10 @@ class Shapes3dDataset(object):
                 {'category': c, 'model': m}
                 for m in models_c
             ]
-            print(len(self.models))
         # print(self.models)
 
-        print("dataset_size:{}".format(len(self.models)))
+        random.shuffle(self.models)
+
         print("ShapeNet3D dataset __init__ complete")
 
     def __len__(self):
@@ -155,7 +153,6 @@ class Shapes3dDataset(object):
             if self.transform is not None:
                 data = self.transform(data)
 
-            print("category:{}, model:{}".format(category, model))
             yield data
 
     def dataset_keys(self):
