@@ -214,8 +214,10 @@ class CBatchNorm1d(tf.keras.Model):
         self.f_dim = f_dim
         self.norm_method = norm_method
         # Submodules
-        self.conv_gamma = tf.keras.layers.Conv1D(f_dim, 1)
-        self.conv_beta = tf.keras.layers.Conv1D(f_dim, 1)
+        self.conv_gamma = tf.keras.layers.Conv1D(
+            f_dim, 1, kernel_initializer='zeros', bias_initializer='ones')
+        self.conv_beta = tf.keras.layers.Conv1D(
+            f_dim, 1,  kernel_initializer='zeros', bias_initializer='zeros')
         if norm_method == 'batch_norm':
             self.bn = tf.keras.layers.BatchNormalization(trainable=False)
         elif norm_method == 'instance_norm':
@@ -231,13 +233,6 @@ class CBatchNorm1d(tf.keras.Model):
             self.bn = tfa.layers.GroupNormalization()  # TODO trainable=False
         else:
             raise ValueError('Invalid normalization method!')
-        # self.reset_parameters()
-
-    # def reset_parameters(self):
-    #     nn.init.zeros_(self.conv_gamma.weight)
-    #     nn.init.zeros_(self.conv_beta.weight)
-    #     nn.init.ones_(self.conv_gamma.bias)
-    #     nn.init.zeros_(self.conv_beta.bias)
 
     def call(self, x, c):
         assert (x.shape[0] == c.shape[0])
@@ -245,7 +240,7 @@ class CBatchNorm1d(tf.keras.Model):
 
         # c is assumed to be of size batch_size x c_dim x T
         if tf.rank(c) == 2:
-            c = tf.expand_dims(c, 1)
+            c = tf.expand_dims(c, 1)  # CHECK
 
         # Affine mapping
         gamma = self.conv_gamma(c)
@@ -273,8 +268,10 @@ class CBatchNorm1d_legacy(tf.keras.Model):
         self.f_dim = f_dim
         self.norm_method = norm_method
         # Submodules
-        self.fc_gamma = tf.keras.layers.Dense(f_dim)
-        self.fc_beta = tf.keras.layers.Dense(f_dim)
+        self.fc_gamma = tf.keras.layers.Dense(
+            f_dim, kernel_initializer='zeros', bias_initializer='ones')
+        self.fc_beta = tf.keras.layers.Dense(
+            f_dim, kernel_initializer='zeros', bias_initializer='zeros')
         if norm_method == 'batch_norm':
             self.bn = tf.keras.layers.BatchNormalization(trainable=False)
         elif norm_method == 'instance_norm':
@@ -290,13 +287,6 @@ class CBatchNorm1d_legacy(tf.keras.Model):
             self.bn = tfa.layers.GroupNormalization()  # TODO trainable=False
         else:
             raise ValueError('Invalid normalization method!')
-        # self.reset_parameters()
-
-    # def reset_parameters(self):
-    #     nn.init.zeros_(self.fc_gamma.weight)
-    #     nn.init.zeros_(self.fc_beta.weight)
-    #     nn.init.ones_(self.fc_gamma.bias)
-    #     nn.init.zeros_(self.fc_beta.bias)
 
     def call(self, x, c):
         batch_size = x.shape[0]
