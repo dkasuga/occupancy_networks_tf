@@ -63,7 +63,7 @@ class BasicBlock(tf.keras.layers.Layer):
         else:
             self.downsample = lambda x: x
 
-    def call(self, inputs, training=None, **kwargs):
+    def call(self, inputs, training=False, **kwargs):
         residual = self.downsample(inputs)
 
         x = self.conv1(inputs)
@@ -131,17 +131,17 @@ class Resnet18(tf.keras.Model):
         else:
             raise ValueError('c_dim must be 512 if use_linear is False')
 
-    def call(self, x):
+    def call(self, x, training=False):
         if self.normalize:
             x = normalize_imagenet(x)
         x = self.conv1(x)
-        x = self.bn1(x)
+        x = self.bn1(x, training=training)
         x = tf.nn.relu(x)
         x = self.pool1(x)
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        x = self.layer1(x, training=training)
+        x = self.layer2(x, training=training)
+        x = self.layer3(x, training=training)
+        x = self.layer4(x, training=training)
         x = self.avgpool(x)
         out = self.fc(x)
         return out
@@ -199,10 +199,10 @@ class Resnet50(tf.keras.Model):
         else:
             raise ValueError('c_dim must be 2048 if use_linear is False')
 
-    def call(self, x):
+    def call(self, x, training=False):
         if self.normalize:
             x = normalize_imagenet(x)
-        net = self.features(x)
+        net = self.features(x, training=training)
         print("##################################")
         print("net.shape:{}".format(net.shape))
         print("##################################")
@@ -234,9 +234,9 @@ class Resnet101(tf.keras.Model):
         else:
             raise ValueError('c_dim must be 2048 if use_linear is False')
 
-    def call(self, x):
+    def call(self, x, training=False):
         if self.normalize:
             x = normalize_imagenet(x)
-        net = self.features(x)
+        net = self.features(x, training=training)
         out = self.fc(net)
         return out
