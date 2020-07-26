@@ -104,9 +104,9 @@ class CResnetBlockConv1d(tf.keras.Model):
         else:
             self.shortcut = tf.keras.layers.Conv1d(size_out, 1, use_bias=False)
 
-    def call(self, x, c):
-        net = self.fc_0(self.actvn(self.bn_0(x, c)))
-        dx = self.fc_1(self.actvn(self.bn_1(net, c)))
+    def call(self, x, c, training=False):
+        net = self.fc_0(self.actvn(self.bn_0(x, c, training=training)))
+        dx = self.fc_1(self.actvn(self.bn_1(net, c, training=training)))
 
         if self.shortcut is not None:
             x_s = self.shortcut(x)
@@ -151,9 +151,9 @@ class ResnetBlockConv1d(tf.keras.Model):
         else:
             self.shortcut = tf.keras.layers.Conv1d(size_out, 1, use_bias=False)
 
-    def call(self, x):
-        net = self.fc_0(self.actvn(self.bn_0(x)))
-        dx = self.fc_1(self.actvn(self.bn_1(net)))
+    def call(self, x, training=False):
+        net = self.fc_0(self.actvn(self.bn_0(x, training=training)))
+        dx = self.fc_1(self.actvn(self.bn_1(net, training=training)))
 
         if self.shortcut is not None:
             x_s = self.shortcut(x)
@@ -289,7 +289,7 @@ class CBatchNorm1d_legacy(tf.keras.Model):
         else:
             raise ValueError('Invalid normalization method!')
 
-    def call(self, x, c):
+    def call(self, x, c, training=False):
         batch_size = x.shape[0]
         # Affine mapping
         gamma = self.fc_gamma(c)
@@ -297,7 +297,7 @@ class CBatchNorm1d_legacy(tf.keras.Model):
         gamma = tf.reshape(gamma, [batch_size, self.f_dim, 1])
         beta = tf.reshape(beta, [batch_size, self.f_dim, 1])
         # Batchnorm
-        net = self.bn(x)
+        net = self.bn(x, training=training)
         out = gamma * net + beta
 
         return out
