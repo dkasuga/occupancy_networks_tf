@@ -40,7 +40,6 @@ class Decoder(tf.keras.Model):
 
         # need to check ResnetBlockFC later
         self.block0 = ResnetBlockFC(hidden_size)
-        self.block1 = ResnetBlockFC(hidden_size)
         self.block2 = ResnetBlockFC(hidden_size)
         self.block3 = ResnetBlockFC(hidden_size)
         self.block4 = ResnetBlockFC(hidden_size)
@@ -120,25 +119,25 @@ class DecoderCBatchNorm(tf.keras.Model):
         else:
             self.actvn = tf.keras.layers.LeakyReLU(0.2)
 
-    def call(self, p, z, c, **kwargs):
+    def call(self, p, z, c, training=False, **kwargs):
         # p = p.transpose(1, 2)
         # p = tf.transpose(p, perm=[0, 2, 1])
 
         # batch_size, D, T = p.size()
-        # batch_size, D, T = p.get_shape()
+        # batch_size, D, T = p.get_shape() [64,2048,3]
         net = self.fc_p(p)
 
         if self.z_dim != 0:
             net_z = tf.expand_dims(self.fc_z(z), 1)  # CHECK
             net = net + net_z
 
-        net = self.block0(net, c)
-        net = self.block1(net, c)
-        net = self.block2(net, c)
-        net = self.block3(net, c)
-        net = self.block4(net, c)
+        net = self.block0(net, c, training=training)
+        net = self.block1(net, c, training=training)
+        net = self.block2(net, c, training=training)
+        net = self.block3(net, c, training=training)
+        net = self.block4(net, c, training=training)
 
-        out = self.fc_out(self.actvn(self.bn(net, c)))
+        out = self.fc_out(self.actvn(self.bn(net, c, training=training)))
 
         out = tf.squeeze(out, 2)
 
@@ -175,7 +174,7 @@ class DecoderCBatchNorm2(tf.keras.Model):
         self.conv_net = tf.keras.layers.Conv1D(1, 1)
         self.actvn = tf.keras.layers.ReLU()
 
-    def call(self, p, z, c, **kwargs):
+    def call(self, p, z, c, training=False, **kwargs):
         p = tf.transpose(p, perm=[0, 2, 1])
         batch_size, D, T = p.get_shape()
         net = self.conv_p(p)
@@ -184,9 +183,9 @@ class DecoderCBatchNorm2(tf.keras.Model):
             c = c + self.fc_z(z)
 
         for block in self.blocks:
-            net = block(net, c)
+            net = block(net, c, training=training)
 
-        out = self.conv_out(self.actvn(self.bn(net, c)))
+        out = self.conv_out(self.actvn(self.bn(net, c, training=training)))
         out = tf.square(out, 1)
 
         return out
@@ -235,7 +234,7 @@ class DecoderCBatchNormNoResnet(tf.keras.Model):
         else:
             self.actvn = tf.keras.layers.LeakyReLU(0.2)
 
-    def call(self, p, z, c, **kwargs):
+    def call(self, p, z, c, training=False, **kwargs):
         p = tf.transpose(p, perm=[0, 2, 1])
         batch_size, D, T = p.get_shape()
         net = self.fc_p(p)
@@ -244,17 +243,17 @@ class DecoderCBatchNormNoResnet(tf.keras.Model):
             net_z = tf.expand_dims(self.fc_z(z), 2)
             net = net + net_z
 
-        net = self.actvn(self.bn_0(net, c))
+        net = self.actvn(self.bn_0(net, c, training=training))
         net = self.fc_0(net)
-        net = self.actvn(self.bn_1(net, c))
+        net = self.actvn(self.bn_1(net, c, training=training))
         net = self.fc_1(net)
-        net = self.actvn(self.bn_2(net, c))
+        net = self.actvn(self.bn_2(net, c, training=training))
         net = self.fc_2(net)
-        net = self.actvn(self.bn_3(net, c))
+        net = self.actvn(self.bn_3(net, c, training=training))
         net = self.fc_3(net)
-        net = self.actvn(self.bn_4(net, c))
+        net = self.actvn(self.bn_4(net, c, training=training))
         net = self.fc_4(net)
-        net = self.actvn(self.bn_5(net, c))
+        net = self.actvn(self.bn_5(net, c, training=training))
         out = self.fc_out(net)
         out = tf.squeeze(out, 1)
 
@@ -305,7 +304,7 @@ class DecoderBatchNorm(tf.keras.Model):
         else:
             self.actvn = tf.keras.layers.LeakyReLU(0.2)
 
-    def call(self, p, z, c, **kwargs):
+    def call(self, p, z, c, training=False, **kwargs):
         p = tf.transpose(p, perm=[0, 2, 1])
         batch_size, D, T = p.get_shape()
         net = self.fc_p(p)
@@ -318,13 +317,13 @@ class DecoderBatchNorm(tf.keras.Model):
             net_c = tf.expand_dims(self.fc_c(c), 2)  # CHECK
             net = net + net_c
 
-        net = self.block0(net)
-        net = self.block1(net)
-        net = self.block2(net)
-        net = self.block3(net)
-        net = self.block4(net)
+        net = self.block0(net, training=training)
+        net = self.block1(net, training=training)
+        net = self.block2(net, training=training)
+        net = self.block3(net, training=training)
+        net = self.block4(net, training=training)
 
-        out = self.fc_out(self.actvn(self.bn(net)))
+        out = self.fc_out(self.actvn(self.bn(net, training=training)))
         out = tf.squeeze(out, 1)
 
         return out
