@@ -15,11 +15,11 @@ class ConvEncoder(tf.keras.Model):
 
     def __init__(self, c_dim=128):
         super().__init__()
-        self.conv0 = tf.keras.layers.Conv2D(32, 3, stride=2)
-        self.conv1 = tf.keras.layers.Conv2D(64, 3, stride=2)
-        self.conv2 = tf.keras.layers.Conv2D(128, 3, stride=2)
-        self.conv3 = tf.keras.layers.Conv2D(256, 3, stride=2)
-        self.conv4 = tf.keras.layers.Conv2D(512, 3, stride=2)
+        self.conv0 = tf.keras.layers.Conv2D(32, 3, strides=2)
+        self.conv1 = tf.keras.layers.Conv2D(64, 3, strides=2)
+        self.conv2 = tf.keras.layers.Conv2D(128, 3, strides=2)
+        self.conv3 = tf.keras.layers.Conv2D(256, 3, strides=2)
+        self.conv4 = tf.keras.layers.Conv2D(512, 3, strides=2)
         self.fc_out = tf.keras.layers.Dense(c_dim)
         self.actvn = tf.keras.layers.ReLU()
 
