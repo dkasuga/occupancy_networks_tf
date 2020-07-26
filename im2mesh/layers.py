@@ -37,8 +37,7 @@ class ResnetBlockFC(tf.keras.Model):
         if size_in == size_out:
             self.shortcut = None
         else:
-            # TODO: FIX
-            self.shortcut = tf.keras.layers(size_out, use_bias=False)
+            self.shortcut = tf.keras.layers.Dense(size_out, use_bias=False)
 
     def call(self, x):
         net = self.fc_0(self.actvn(x))
