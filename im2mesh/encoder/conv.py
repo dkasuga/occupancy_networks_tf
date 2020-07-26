@@ -15,12 +15,12 @@ class ConvEncoder(tf.keras.Model):
 
     def __init__(self, c_dim=128):
         super().__init__()
-        self.conv0 = tf.keras.Conv2D(32, 3, stride=2)
-        self.conv1 = tf.keras.Conv2D(64, 3, stride=2)
-        self.conv2 = tf.keras.Conv2D(128, 3, stride=2)
-        self.conv3 = tf.keras.Conv2D(256, 3, stride=2)
-        self.conv4 = tf.keras.Conv2D(512, 3, stride=2)
-        self.fc_out = tf.keras.Dense(c_dim)
+        self.conv0 = tf.keras.layers.Conv2D(32, 3, stride=2)
+        self.conv1 = tf.keras.layers.Conv2D(64, 3, stride=2)
+        self.conv2 = tf.keras.layers.Conv2D(128, 3, stride=2)
+        self.conv3 = tf.keras.layers.Conv2D(256, 3, stride=2)
+        self.conv4 = tf.keras.layers.Conv2D(512, 3, stride=2)
+        self.fc_out = tf.keras.layers.Dense(c_dim)
         self.actvn = tf.keras.layers.ReLU()
 
     def call(self, x):
@@ -199,13 +199,12 @@ class Resnet50(tf.keras.Model):
         else:
             raise ValueError('c_dim must be 2048 if use_linear is False')
 
+        print("resnet50")
+
     def call(self, x, training=False):
         if self.normalize:
             x = normalize_imagenet(x)
         net = self.features(x, training=training)
-        print("##################################")
-        print("net.shape:{}".format(net.shape))
-        print("##################################")
         out = self.fc(net)
         return out
 
