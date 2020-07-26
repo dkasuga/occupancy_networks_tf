@@ -37,6 +37,7 @@ class ResnetBlockFC(tf.keras.Model):
         if size_in == size_out:
             self.shortcut = None
         else:
+            # TODO: FIX
             self.shortcut = tf.keras.layers(size_out, use_bias=False)
 
     def call(self, x):
@@ -234,7 +235,7 @@ class CBatchNorm1d(tf.keras.Model):
         else:
             raise ValueError('Invalid normalization method!')
 
-    def call(self, x, c):
+    def call(self, x, c, training=False):
         assert (x.shape[0] == c.shape[0])
         assert (c.shape[1] == self.c_dim)
 
@@ -247,7 +248,7 @@ class CBatchNorm1d(tf.keras.Model):
         beta = self.conv_beta(c)
 
         # Batchnorm
-        net = self.bn(x)
+        net = self.bn(x, training=training)
         out = gamma * net + beta
 
         return out
