@@ -71,7 +71,7 @@ model = config.get_model(cfg, dataset=train_dataset)
 
 # Intialize training
 npoints = 1000
-optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
+optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, epsilon=1e-08)
 # optimizer = optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
 trainer = config.get_trainer(model, optimizer, cfg)
 
@@ -130,6 +130,10 @@ while True:
 
         # Print output
         if print_every > 0 and (it % print_every) == 0:
+            # p = batch.get("points")
+            # inputs = batch.get("inputs", tf.zeros([p.shape[0], 0]))
+            # _ = trainer.model(p, inputs)
+            # print(trainer.model.summary())
             print('[Epoch %02d] it=%03d, loss=%.4f' % (epoch_it, it, loss))
             with train_summary_writer.as_default():
                 tf.summary.scalar('loss', loss, step=it)
@@ -162,14 +166,14 @@ while True:
         #     print('validation metric (%s): %.4f'
         #           % (model_selection_metric, metric_val))
 
-            # for k, v in eval_dict.items():
-            # logger.add_scalar('val/%s' % k, v, it)
+        # for k, v in eval_dict.items():
+        # logger.add_scalar('val/%s' % k, v, it)
 
-            # if model_selection_sign * (metric_val - metric_val_best) > 0:
-            #     metric_val_best = metric_val
-            #     print('New best model (loss %.4f)' % metric_val_best)
-            #     checkpoint_io.save('model_best.ckpt', epoch_it=epoch_it, it=it,
-            #                        loss_val_best=metric_val_best)
+        # if model_selection_sign * (metric_val - metric_val_best) > 0:
+        #     metric_val_best = metric_val
+        #     print('New best model (loss %.4f)' % metric_val_best)
+        #     checkpoint_io.save('model_best.ckpt', epoch_it=epoch_it, it=it,
+        #                        loss_val_best=metric_val_best)
 
         # Exit if necessary
         # if exit_after > 0 and (time.time() - t0) >= exit_after:

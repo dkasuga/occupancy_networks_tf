@@ -40,6 +40,8 @@ class Trainer(BaseTrainer):
 
         if vis_dir is not None and not os.path.exists(vis_dir):
             os.makedirs(vis_dir)
+        # print("self.model.trainable_weight:{}".format(
+        #     self.model.trainable_weights))
 
     def train_step(self, data):
         """ Performs a training step.
@@ -154,7 +156,6 @@ class Trainer(BaseTrainer):
         inputs = data.get("inputs", tf.zeros([p.shape[0], 0]))
 
         kwargs = {}
-
         c = self.model.encode_inputs(inputs, training=training)
         q_z = self.model.infer_z(p, occ, c, training=training, **kwargs)
         # z = q_z.rsample()
