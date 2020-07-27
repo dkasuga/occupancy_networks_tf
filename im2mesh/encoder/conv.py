@@ -31,9 +31,10 @@ class ConvEncoder(tf.keras.Model):
         net = self.conv2(self.actvn(net))
         net = self.conv3(self.actvn(net))
         net = self.conv4(self.actvn(net))
-        net = net.view(batch_size, 512, -1).mean(2)
+        # net = net.view(batch_size, 512, -1).mean(2)
+        # net = tf.reduce_mean(tf.reshape(net, [batch_size, 512, -1]), axis=-1)
         net = tf.reshape(net, [batch_size, 512, -1])
-        net = tf.math.reduce_mean(net, 2)
+        net = tf.math.reduce_mean(net, axis=-1)
 
         out = self.fc_out(self.actvn(net))
 
@@ -48,18 +49,23 @@ class BasicBlock(tf.keras.layers.Layer):
                                             kernel_size=(3, 3),
                                             strides=stride,
                                             padding="same")
-        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.bn1 = tf.keras.layers.BatchNormalization(
+            momentum=0.1, epsilon=1e-05)
+
         self.conv2 = tf.keras.layers.Conv2D(filters=filter_num,
                                             kernel_size=(3, 3),
                                             strides=1,
                                             padding="same")
-        self.bn2 = tf.keras.layers.BatchNormalization()
+        self.bn2 = tf.keras.layers.BatchNormalization(
+            momentum=0.1, epsilon=1e-05)
+
         if stride != 1:
             self.downsample = tf.keras.Sequential()
             self.downsample.add(tf.keras.layers.Conv2D(filters=filter_num,
                                                        kernel_size=(1, 1),
                                                        strides=stride))
-            self.downsample.add(tf.keras.layers.BatchNormalization())
+            self.downsample.add(tf.keras.layers.BatchNormalization(
+                momentum=0.1, epsilon=1e-05))
         else:
             self.downsample = lambda x: x
 
@@ -104,7 +110,9 @@ class Resnet18(tf.keras.Model):
                                             kernel_size=(7, 7),
                                             strides=2,
                                             padding="same")
-        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.bn1 = tf.keras.layers.BatchNormalization(
+            momentum=0.1, epsilon=1e-05)
+
         self.pool1 = tf.keras.layers.MaxPool2D(pool_size=(3, 3),
                                                strides=2,
                                                padding="same")

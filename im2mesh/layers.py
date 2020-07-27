@@ -136,8 +136,11 @@ class ResnetBlockConv1d(tf.keras.Model):
         self.size_h = size_h
         self.size_out = size_out
         # Submodules
-        self.bn_0 = tf.keras.layers.BatchNormalization()
-        self.bn_1 = tf.keras.layers.BatchNormalization()
+
+        self.bn_0 = tf.keras.layers.BatchNormalization(
+            momentum=0.1, epsilon=1e-05)
+        self.bn_1 = tf.keras.layers.BatchNormalization(
+            momentum=0.1, epsilon=1e-05)
 
         self.fc_0 = tf.keras.layers.Conv1D(size_h, 1)
         self.fc_1 = tf.keras.layers.Conv1D(size_out,
@@ -217,9 +220,10 @@ class CBatchNorm1d(tf.keras.Model):
         self.conv_gamma = tf.keras.layers.Conv1D(
             f_dim, 1, kernel_initializer='zeros', bias_initializer='ones')
         self.conv_beta = tf.keras.layers.Conv1D(
-            f_dim, 1,  kernel_initializer='zeros', bias_initializer='zeros')
+            f_dim, 1, kernel_initializer='zeros', bias_initializer='zeros')
         if norm_method == 'batch_norm':
-            self.bn = tf.keras.layers.BatchNormalization(trainable=False)
+            self.bn = tf.keras.layers.BatchNormalization(
+                trainable=False, momentum=0.1, epsilon=1e-05)
         elif norm_method == 'instance_norm':
             '''
             tfa.layers.InstanceNormalization doesn't have 'trainable' arguments
@@ -273,7 +277,8 @@ class CBatchNorm1d_legacy(tf.keras.Model):
         self.fc_beta = tf.keras.layers.Dense(
             f_dim, kernel_initializer='zeros', bias_initializer='zeros')
         if norm_method == 'batch_norm':
-            self.bn = tf.keras.layers.BatchNormalization(trainable=False)
+            self.bn = tf.keras.layers.BatchNormalization(
+                trainable=False, momentum=0.1, epsilon=1e-05)
         elif norm_method == 'instance_norm':
             '''
             tfa.layers.InstanceNormalization doesn't have 'trainable' arguments

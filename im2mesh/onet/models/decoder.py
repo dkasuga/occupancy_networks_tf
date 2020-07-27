@@ -295,7 +295,8 @@ class DecoderBatchNorm(tf.keras.Model):
         self.block3 = ResnetBlockConv1d(hidden_size)
         self.block4 = ResnetBlockConv1d(hidden_size)
 
-        self.bn = tf.keras.layers.BatchNormalization(hidden_size)
+        self.bn = tf.keras.layers.BatchNormalization(
+            momentum=0.1, epsilon=1e-05)
 
         self.fc_out = tf.keras.Conv1D(1, 1)
 
