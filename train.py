@@ -72,7 +72,7 @@ model = config.get_model(cfg, dataset=train_dataset)
 # Intialize training
 npoints = 1000
 optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, epsilon=1e-08)
-# optimizer = optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
+# optimizer = tf.keras.optimizers.SGD(learning_rate=1e-4, momentum=0.9)
 trainer = config.get_trainer(model, optimizer, cfg)
 
 checkpoint_io = CheckpointIO(model, out_dir)
@@ -123,7 +123,7 @@ while True:
     epoch_it += 1
 #     scheduler.step()
 
-    for batch in train_dataset:  # .batch(64):
+    for batch in train_dataset:
         it += 1
         loss = trainer.train_step(batch)
         # logger.add_scalar('train/loss', loss, it)
@@ -138,12 +138,10 @@ while True:
             with train_summary_writer.as_default():
                 tf.summary.scalar('loss', loss, step=it)
 
-        # checkpoint_io now has problems
-
         # Visualize output
-        if visualize_every > 0 and (it % visualize_every) == 0:
-            print('Visualizing')
-            trainer.visualize(data_vis)
+        # if visualize_every > 0 and (it % visualize_every) == 0:
+        #     print('Visualizing')
+        #     trainer.visualize(data_vis)
 
         # Save checkpoint
         # if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
@@ -154,17 +152,16 @@ while True:
         # Backup if necessary
         # if (backup_every > 0 and (it % backup_every) == 0):
         #     print('Backup checkpoint')
-        #     checkpoint_io.save('model_%d.ckpt' % it, epoch_it=epoch_it, it=it,
+        #     checkpointio.save('model_%d.ckpt' % it, epoch_it=epoch_it, it=it,
         #                        loss_val_best=metric_val_best)
         # Run validation
-        # if validate_every > 0 and (it % validate_every) == 0:
-        #     print("evaluate")
-        #     eval_dict = trainer.evaluate(val_dataset)
-
-        #     print("eval_dict")
-        #     metric_val = eval_dict[model_selection_metric]
-        #     print('validation metric (%s): %.4f'
-        #           % (model_selection_metric, metric_val))
+        if validate_every > 0 and (it % validate_every) == 0:
+            print("evaluate")
+            eval_dict = trainer.evaluate(val_dataset)
+            print("eval_dict")
+            metric_val = eval_dict[model_selection_metric]
+            print('validation metric (%s): %.4f'
+                  % (model_selection_metric, metric_val))
 
         # for k, v in eval_dict.items():
         # logger.add_scalar('val/%s' % k, v, it)
