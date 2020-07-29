@@ -147,18 +147,14 @@ while True:
 
         # Print output
         if print_every > 0 and (it % print_every) == 0:
-            # p = batch.get("points")
-            # inputs = batch.get("inputs", tf.zeros([p.shape[0], 0]))
-            # _ = trainer.model(p, inputs)
-            # print(trainer.model.summary())
             print('[Epoch %02d] it=%03d, loss=%.4f' % (epoch_it, it, loss))
             with train_summary_writer.as_default():
                 tf.summary.scalar('loss', loss, step=it)
 
         # Visualize output
-        if visualize_every > 0 and (it % visualize_every) == 0:
-            print('Visualizing')
-            trainer.visualize(data_vis)
+        # if visualize_every > 0 and (it % visualize_every) == 0:
+        #     print('Visualizing')
+        #     trainer.visualize(data_vis)
 
         # Save checkpoint
         if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
