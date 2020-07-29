@@ -1,4 +1,5 @@
 import torch
+import tensorflow as tf
 
 # import torch.distributions as dist
 import os
@@ -15,14 +16,13 @@ from im2mesh.utils.visualize import visualize_data
 from im2mesh.utils.voxels import VoxelGrid
 
 
-parser = argparse.ArgumentParser(description="Extract meshes from occupancy process.")
+parser = argparse.ArgumentParser(
+    description="Extract meshes from occupancy process.")
 parser.add_argument("config", type=str, help="Path to config file.")
 parser.add_argument("--no-cuda", action="store_true", help="Do not use cuda.")
 
 args = parser.parse_args()
 cfg = config.load_config(args.config, "configs/default.yaml")
-is_cuda = torch.cuda.is_available() and not args.no_cuda
-device = torch.device("cuda" if is_cuda else "cpu")
 
 out_dir = cfg["training"]["out_dir"]
 generation_dir = os.path.join(out_dir, cfg["generation"]["generation_dir"])
@@ -35,20 +35,24 @@ vis_n_outputs = cfg["generation"]["vis_n_outputs"]
 if vis_n_outputs is None:
     vis_n_outputs = -1
 
-# Dataset
-dataset = config.get_dataset("test", cfg, return_idx=True)
 
 # Model
-model = config.get_model(cfg, device=device, dataset=dataset)
+# Dataset
+dataset = config.get_dataset(
+    'test', cfg, batch_size=1, shuffle=False, repeat_count=1, epoch=1)
+# Loader
+dataloader = dataset.loader()
 
-checkpoint_io = CheckpointIO(out_dir, model=model)
+model = config.get_model(cfg, dataset=dataset)
+
+checkpoint_io = CheckpointIO(model, checkpoint_dir=out_dir)
 
 # checkpoint_io.load(cfg['test']['model_file'])
 model = checkpoint_io.load(cfg["test"]["model_file"])  # CHECK
 
 
 # Generator
-generator = config.get_generator(model, cfg, device=device)
+generator = config.get_generator(model, cfg)
 
 # Determine what to generate
 generate_mesh = cfg["generation"]["generate_mesh"]
@@ -64,20 +68,17 @@ if generate_pointcloud and not hasattr(generator, "generate_pointcloud"):
 
 
 # Loader
-test_loader = torch.utils.data.DataLoader(
-    dataset, batch_size=1, num_workers=0, shuffle=False
-)
-
+# test_loader = torch.utils.data.DataLoader(
+#     dataset, batch_size=1, num_workers=0, shuffle=False
+# )
 # Statistics
 time_dicts = []
 
-# Generate
-model.eval()
 
 # Count how many models already created
 model_counter = defaultdict(int)
 
-for it, data in enumerate(tqdm(test_loader)):
+for it, data in enumerate(tqdm(dataloader)):
     # Output folders
     mesh_dir = os.path.join(generation_dir, "meshes")
     pointcloud_dir = os.path.join(generation_dir, "pointcloud")
@@ -167,7 +168,8 @@ for it, data in enumerate(tqdm(test_loader)):
         t0 = time.time()
         pointcloud = generator.generate_pointcloud(data)
         time_dict["pcl"] = time.time() - t0
-        pointcloud_out_file = os.path.join(pointcloud_dir, "%s.ply" % modelname)
+        pointcloud_out_file = os.path.join(
+            pointcloud_dir, "%s.ply" % modelname)
         export_pointcloud(pointcloud, pointcloud_out_file)
         out_file_dict["pointcloud"] = pointcloud_out_file
 
@@ -175,18 +177,18 @@ for it, data in enumerate(tqdm(test_loader)):
         # Save inputs
         if input_type == "img":
             inputs_path = os.path.join(in_dir, "%s.jpg" % modelname)
-            inputs = data["inputs"].squeeze(0).cpu()
+            inputs = tf.squeeze(data["inputs"], axis=0)
             visualize_data(inputs, "img", inputs_path)
             out_file_dict["in"] = inputs_path
         elif input_type == "voxels":
             inputs_path = os.path.join(in_dir, "%s.off" % modelname)
-            inputs = data["inputs"].squeeze(0).cpu()
+            inputs = tf.squeeze(data["inputs"], axis=0)
             voxel_mesh = VoxelGrid(inputs).to_mesh()
             voxel_mesh.export(inputs_path)
             out_file_dict["in"] = inputs_path
         elif input_type == "pointcloud":
             inputs_path = os.path.join(in_dir, "%s.ply" % modelname)
-            inputs = data["inputs"].squeeze(0).cpu().numpy()
+            inputs = tf.squeeze(data["inputs"], axis=0).numpy()
             export_pointcloud(inputs, inputs_path, False)
             out_file_dict["in"] = inputs_path
 
@@ -197,7 +199,8 @@ for it, data in enumerate(tqdm(test_loader)):
         img_name = "%02d.off" % c_it
         for k, filepath in out_file_dict.items():
             ext = os.path.splitext(filepath)[1]
-            out_file = os.path.join(generation_vis_dir, "%02d_%s%s" % (c_it, k, ext))
+            out_file = os.path.join(
+                generation_vis_dir, "%02d_%s%s" % (c_it, k, ext))
             shutil.copyfile(filepath, out_file)
 
     model_counter[category_id] += 1
