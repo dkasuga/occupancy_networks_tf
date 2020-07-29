@@ -187,15 +187,15 @@ class Shapes3dDataset(object):
 
         return data.keys()
 
-    def dataset(self):
-        dataset = tf.data.Dataset.from_generator(
+    def loader(self):
+        loader = tf.data.Dataset.from_generator(
             self.generator, output_types={k: tf.float32 for k in self.dataset_keys()})
-        dataset.apply(tf.data.experimental.shuffle_and_repeat(
+        loader.apply(tf.data.experimental.shuffle_and_repeat(
             self.batch_size * 3, self.epoch))
-        dataset = dataset.batch(batch_size=self.batch_size)
-        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        loader = loader.batch(batch_size=self.batch_size)
+        loader = loader.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-        return dataset
+        return loader
 
     def get_model_dict(self, idx):
         return self.models[idx]

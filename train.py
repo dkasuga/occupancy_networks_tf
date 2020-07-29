@@ -50,17 +50,17 @@ if not os.path.exists(out_dir):
 
 # Dataset
 # specify path
-train_dataset = config.get_dataset(
-    'train', cfg, batch_size=batch_size, shuffle=True, repeat_count=1, epoch=100).dataset()
-val_dataset = config.get_dataset(
-    'val', cfg, batch_size=10, shuffle=False, repeat_count=1, epoch=1).dataset()
-vis_dataset = config.get_dataset(
-    'val', cfg, batch_size=12, shuffle=False, repeat_count=1, epoch=1).dataset()
+train_loader = config.get_dataset(
+    'train', cfg, batch_size=batch_size, shuffle=True, repeat_count=1, epoch=100).loader()
+val_loader = config.get_dataset(
+    'val', cfg, batch_size=10, shuffle=False, repeat_count=1, epoch=1).loader()
+vis_loader = config.get_dataset(
+    'val', cfg, batch_size=12, shuffle=False, repeat_count=1, epoch=1).loader()
 
-data_vis = next(iter(vis_dataset))
+data_vis = next(iter(vis_loader))
 
 # Model
-model = config.get_model(cfg, dataset=train_dataset)
+model = config.get_model(cfg, dataset=train_loader)
 
 # Intialize training
 npoints = 1000
@@ -120,7 +120,7 @@ while True:
     epoch_it.assign_add(1)
 #     scheduler.step()
 
-    for batch in train_dataset:
+    for batch in train_loader:
         # it += 1
         it.assign_add(1)
         loss = trainer.train_step(batch)
@@ -150,7 +150,7 @@ while True:
         # Run validation
         if validate_every > 0 and (it % validate_every) == 0:
             print("evaluate")
-            eval_dict = trainer.evaluate(val_dataset)
+            eval_dict = trainer.evaluate(val_loader)
             print("eval_dict")
             metric_val = eval_dict[model_selection_metric]
             print('validation metric (%s): %.4f'
