@@ -11,7 +11,6 @@ from im2mesh.checkpoints import CheckpointIO
 # from tensorboardX import SummaryWriter
 matplotlib.use('Agg')
 
-
 # Arguments
 parser = argparse.ArgumentParser(
     description='Train a 3D reconstruction model.'
@@ -26,12 +25,6 @@ parser.add_argument('--exit-after', type=int, default=-1,
 
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
-
-# gpu_id = args.gpu
-# if tf.__version__ >= "2.1.0":
-#     physical_devices = tf.config.list_physical_devices('GPU')
-#     print(tf.config.list_physical_devices('GPU'))
-#     tf.config.set_visible_devices(physical_devices[gpu_id], 'GPU')
 
 # Set t0
 t0 = time.time()
@@ -75,18 +68,6 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, epsilon=1e-08)
 # optimizer = tf.keras.optimizers.SGD(learning_rate=1e-4, momentum=0.9)
 
 checkpoint_io = CheckpointIO(model, optimizer, model_selection_sign, out_dir)
-# ckpt = tf.train.Checkpoint(
-#     epoch_it=tf.Variable(-1, dtype=tf.int64), it=tf.Variable(-1, dtype=tf.int64), net=model, optimizer=optimizer, metric_val_best=tf.Variable(-model_selection_sign * np.inf, dtype=tf.float32))
-# try:
-#     print(tf.train.latest_checkpoint('./chkpts'))
-#     print("こっち")
-#     ckpt.restore('./chkpts/model.ckpt-33')
-# except:
-#     print('start from scratch')
-
-# epoch_it = ckpt.epoch_it
-# it = ckpt.it
-# metric_val_best = ckpt.metric_val_best
 
 try:
     checkpoint_io.load()
