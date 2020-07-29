@@ -1,14 +1,14 @@
-from im2mesh.checkpoints import CheckpointIO
-from im2mesh import config, data
+import matplotlib
+import datetime
+import time
+import argparse
+import os
+import numpy as np
 import tensorflow as tf
+from im2mesh import config, data
+from im2mesh.checkpoints import CheckpointIO
 
 # from tensorboardX import SummaryWriter
-import numpy as np
-import os
-import argparse
-import time
-import datetime
-import matplotlib
 matplotlib.use('Agg')
 
 
@@ -73,17 +73,37 @@ model = config.get_model(cfg, dataset=train_dataset)
 npoints = 1000
 optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, epsilon=1e-08)
 # optimizer = tf.keras.optimizers.SGD(learning_rate=1e-4, momentum=0.9)
-trainer = config.get_trainer(model, optimizer, cfg)
 
-checkpoint_io = CheckpointIO(model, out_dir)
+checkpoint_io = CheckpointIO(model, optimizer, model_selection_sign, out_dir)
+# ckpt = tf.train.Checkpoint(
+#     epoch_it=tf.Variable(-1, dtype=tf.int64), it=tf.Variable(-1, dtype=tf.int64), net=model, optimizer=optimizer, metric_val_best=tf.Variable(-model_selection_sign * np.inf, dtype=tf.float32))
+# try:
+#     print(tf.train.latest_checkpoint('./chkpts'))
+#     print("こっち")
+#     ckpt.restore('./chkpts/model.ckpt-33')
+# except:
+#     print('start from scratch')
+
+# epoch_it = ckpt.epoch_it
+# it = ckpt.it
+# metric_val_best = ckpt.metric_val_best
+
 try:
-    load_dict = checkpoint_io.load('model.ckpt')
+    checkpoint_io.load()
 except FileExistsError:
-    load_dict = dict()
-epoch_it = load_dict.get('epoch_it', -1)
-it = load_dict.get('it', -1)
-metric_val_best = load_dict.get(
-    'loss_val_best', -model_selection_sign * np.inf)
+    print("start from scratch")
+
+epoch_it = checkpoint_io.ckpt.epoch_it
+it = checkpoint_io.ckpt.it
+metric_val_best = checkpoint_io.ckpt.metric_val_best
+
+
+# epoch_it = load_dict.get('epoch_it', -1)
+# it = load_dict.get('it', -1)
+# metric_val_best = load_dict.get(
+#     'loss_val_best', -model_selection_sign * np.inf)
+
+trainer = config.get_trainer(model, optimizer, cfg)
 
 # Hack because of previous bug in code
 # TODO: remove, because shouldn't be necessary
@@ -107,11 +127,6 @@ checkpoint_every = cfg['training']['checkpoint_every']
 validate_every = cfg['training']['validate_every']
 visualize_every = cfg['training']['visualize_every']
 
-# Print model
-# nparameters = model.count_params()
-# model.summary()
-# print('Total number of parameters: %d' % nparameters)
-
 # log
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
@@ -120,11 +135,13 @@ train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
 while True:
-    epoch_it += 1
+    # epoch_it += 1
+    epoch_it.assign_add(1)
 #     scheduler.step()
 
     for batch in train_dataset:
-        it += 1
+        # it += 1
+        it.assign_add(1)
         loss = trainer.train_step(batch)
         # logger.add_scalar('train/loss', loss, it)
 
@@ -139,21 +156,20 @@ while True:
                 tf.summary.scalar('loss', loss, step=it)
 
         # Visualize output
-        # if visualize_every > 0 and (it % visualize_every) == 0:
-        #     print('Visualizing')
-        #     trainer.visualize(data_vis)
+        if visualize_every > 0 and (it % visualize_every) == 0:
+            print('Visualizing')
+            trainer.visualize(data_vis)
 
         # Save checkpoint
-        # if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
-        #     print('Saving checkpoint')
-        #     checkpoint_io.save('model.ckpt', epoch_it=epoch_it, it=it,
-        #                        loss_val_best=metric_val_best)
-
+        if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
+            print('Saving checkpoint')
+            checkpoint_io.save('model.ckpt', epoch_it=epoch_it, it=it,
+                               loss_val_best=metric_val_best)
         # Backup if necessary
-        # if (backup_every > 0 and (it % backup_every) == 0):
-        #     print('Backup checkpoint')
-        #     checkpointio.save('model_%d.ckpt' % it, epoch_it=epoch_it, it=it,
-        #                        loss_val_best=metric_val_best)
+        if (backup_every > 0 and (it % backup_every) == 0):
+            print('Backup checkpoint')
+            checkpoint_io.save('model_%d.ckpt' % it, epoch_it=epoch_it, it=it,
+                               loss_val_best=metric_val_best)
         # Run validation
         if validate_every > 0 and (it % validate_every) == 0:
             print("evaluate")
@@ -163,18 +179,18 @@ while True:
             print('validation metric (%s): %.4f'
                   % (model_selection_metric, metric_val))
 
-        # for k, v in eval_dict.items():
-        # logger.add_scalar('val/%s' % k, v, it)
+            # for k, v in eval_dict.items():
+            # logger.add_scalar('val/%s' % k, v, it)
 
-        # if model_selection_sign * (metric_val - metric_val_best) > 0:
-        #     metric_val_best = metric_val
-        #     print('New best model (loss %.4f)' % metric_val_best)
-        #     checkpoint_io.save('model_best.ckpt', epoch_it=epoch_it, it=it,
-        #                        loss_val_best=metric_val_best)
+            if model_selection_sign * (metric_val - metric_val_best) > 0:
+                metric_val_best = metric_val
+                print('New best model (loss %.4f)' % metric_val_best)
+                checkpoint_io.save('model_best.ckpt', epoch_it=epoch_it, it=it,
+                                   loss_val_best=metric_val_best)
 
         # Exit if necessary
-        # if exit_after > 0 and (time.time() - t0) >= exit_after:
-        #     print('Time limit reached. Exiting.')
-        #     checkpoint_io.save('model.ckpt', epoch_it=epoch_it, it=it,
-        #                        loss_val_best=metric_val_best)
-        #     exit(3)
+        if exit_after > 0 and (time.time() - t0) >= exit_after:
+            print('Time limit reached. Exiting.')
+            checkpoint_io.save('model.ckpt', epoch_it=epoch_it, it=it,
+                               loss_val_best=metric_val_best)
+            exit(3)
