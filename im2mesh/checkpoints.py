@@ -2,6 +2,7 @@ import os
 import urllib
 
 import tensorflow as tf
+import numpy as np
 
 
 class CheckpointIO(object):
@@ -10,40 +11,53 @@ class CheckpointIO(object):
     It handles saving and loading checkpoints.
 
     Args:
+        model (tf.keras.Model): model saved with the checkpoints
+        optimizer (tf.keras.optimizers): optimizer saved with the checkpoints
+        model_selection_sign (int): parameter needed for initializing metric_val_best
         checkpoint_dir (str): path where checkpoints are saved
     """
 
-    def __init__(self, model, checkpoint_dir="./chkpts"):
-        self.model = model  # include layers weights and optimizer
+    def __init__(self, model, optimizer, model_selection_sign=1, checkpoint_dir="./chkpts"):
+        self.ckpt = tf.train.Checkpoint(
+            model=model, optimizer=optimizer, epoch_it=tf.Variable(-1, dtype=tf.int64), it=tf.Variable(-1, dtype=tf.int64), metric_val_best=tf.Variable(-model_selection_sign * np.inf, dtype=tf.float32))
+
         self.checkpoint_dir = checkpoint_dir
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
 
-    # def register_modules(self, **kwargs):
-    #     """ Registers modules in current module dictionary.
-    #     """
-    #     self.module_dict.update(kwargs)
-
-    def save(self, filename, **kwargs):
+    def save(self, filename, epoch_it, it, loss_val_best, **kwargs):
         """ Saves the current module dictionary.
 
         Args:
             filename (str): name of output file
+            epoch_it (tf.Variable): epoch saved
+            it (tf.Variable): iteration saved
+            loss_val_best(tf.Variable): metric_val_best saved
         """
         if not os.path.isabs(filename):
             filename = os.path.join(self.checkpoint_dir, filename)
 
-        tf.keras.models.save_model(self.model, filename)
+        self.ckpt.epoch_it.assign(epoch_it)
+        self.ckpt.it.assign(it)
+        self.ckpt.metric_val_best.assign(loss_val_best)
+        self.ckpt.save(filename)
 
-    def load(self, filename):
-        if not os.path.isabs(filename):
-            filename = os.path.join(self.checkpoint_dir, filename)
+    def load(self, filename=None):
+        '''Loads a module dictionary from local file or url.
 
-        if os.path.exists(filename):
+        Args:
+            filename (str): name of saved module dictionary
+        '''
+        if filename is not None:
+            if not os.path.isabs(filename):
+                filename = os.path.join(self.checkpoint_dir, filename)
+        else:
+            filename = tf.train.latest_checkpoint(self.checkpoint_dir)
+
+        if filename is not None:
             print(filename)
             print("=> Loading checkpoint from local file...")
-            new_model = tf.keras.models.load_model(filename)
-            return new_model
+            self.ckpt.restore(filename)
         else:
             raise FileExistsError
 
