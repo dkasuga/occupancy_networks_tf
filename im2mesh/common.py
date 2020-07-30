@@ -320,7 +320,6 @@ def fix_Rt_camera(Rt, loc, scale):
     R = Rt[:, :, :3]
     t = Rt[:, :, 3:]
 
-    # scale = scale.view(batch_size, 1, 1)
     scale = tf.reshape(scale, [batch_size, 1, 1])
     R_new = R * scale
     t_new = t + R @ tf.expand_dims(loc, axis=2)
