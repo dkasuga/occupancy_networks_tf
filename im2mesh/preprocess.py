@@ -1,3 +1,6 @@
+import tensorflow as tf
+import numpy as np
+
 from im2mesh import config
 from im2mesh.checkpoints import CheckpointIO
 from im2mesh.utils.io import export_pointcloud
@@ -13,7 +16,6 @@ class PSGNPreprocessor:
         cfg_path (str): path to config file
         pointcloud_n (int): number of output points
         dataset (dataset): dataset
-        device (device): pytorch device
         model_file (str): model file
     '''
 
@@ -21,13 +23,11 @@ class PSGNPreprocessor:
                  cfg_path,
                  pointcloud_n,
                  dataset=None,
-                 device=None,
                  model_file=None):
         self.cfg = config.load_config(cfg_path, 'configs/default.yaml')
         self.pointcloud_n = pointcloud_n
-        self.device = device
         self.dataset = dataset
-        self.model = config.get_model(self.cfg, device, dataset)
+        self.model = config.get_model(self.cfg, dataset)
 
         # Output directory of psgn model
         out_dir = self.cfg['training']['out_dir']
@@ -39,21 +39,19 @@ class PSGNPreprocessor:
         self.checkpoint_io.load(model_file)
 
     def __call__(self, inputs):
-        self.model.eval()
-        with torch.no_grad():
-            points = self.model(inputs)
+        points = self.model(inputs, training=False)
 
-        batch_size = points.size(0)
-        T = points.size(1)
+        batch_size = points.shape[0]
+        T = points.shape[1]
 
         # Subsample points if necessary
         if T != self.pointcloud_n:
-            idx = torch.randint(low=0,
-                                high=T,
-                                size=(batch_size, self.pointcloud_n),
-                                device=self.device)
-            idx = idx[:, :, None].expand(batch_size, self.pointcloud_n, 3)
-
-            points = torch.gather(points, dim=1, index=idx)
+            idx = np.random.randint(low=0,
+                                    high=T,
+                                    size=(batch_size, self.pointcloud_n))
+            idx = tf.convert_to_tensor([:, :, None])
+            idx = tf.broadcast_to(
+                idx, shape=[batch_size, self.pointcloud_n, 3])
+            points = tf.gather(points, indices=idx, batch_dims=1)
 
         return points
