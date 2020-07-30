@@ -1,10 +1,10 @@
+import tensorflow as tf
 import argparse
 # import numpy as np
 import os
 from tqdm import tqdm
 import pandas as pd
 import trimesh
-import torch
 from im2mesh import config, data
 from im2mesh.eval import MeshEvaluator
 from im2mesh.utils.io import load_pointcloud
@@ -14,14 +14,11 @@ parser = argparse.ArgumentParser(
     description='Evaluate mesh algorithms.'
 )
 parser.add_argument('config', type=str, help='Path to config file.')
-parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 parser.add_argument('--eval_input', action='store_true',
                     help='Evaluate inputs instead.')
 
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
-is_cuda = (torch.cuda.is_available() and not args.no_cuda)
-device = torch.device("cuda" if is_cuda else "cpu")
 
 # Shorthands
 out_dir = cfg['training']['out_dir']
@@ -35,7 +32,7 @@ else:
 
 # Dataset
 points_field = data.PointsField(
-    cfg['data']['points_iou_file'], 
+    cfg['data']['points_iou_file'],
     unpackbits=cfg['data']['points_unpackbits'],
 )
 pointcloud_field = data.PointCloudField(
@@ -55,18 +52,20 @@ dataset = data.Shapes3dDataset(
     cfg['data']['test_split'],
     categories=cfg['data']['classes'])
 
+# Dataset
+dataset = config.get_dataset(
+    'test', cfg, batch_size=1, shuffle=False, repeat_count=1, epoch=1)
+# Loader
+dataloader = dataset.loader()
+
 # Evaluator
 evaluator = MeshEvaluator(n_points=100000)
-
-# Loader
-test_loader = torch.utils.data.DataLoader(
-    dataset, batch_size=1, num_workers=0, shuffle=False)
 
 # Evaluate all classes
 eval_dicts = []
 print('Evaluating meshes...')
-for it, data in enumerate(tqdm(test_loader)):
-    if data is None:
+for it, batch in enumerate(tqdm(dataloader)):
+    if batch is None:
         print('Invalid data.')
         continue
 
@@ -79,13 +78,13 @@ for it, data in enumerate(tqdm(test_loader)):
         pointcloud_dir = os.path.join(generation_dir, 'input')
 
     # Get index etc.
-    idx = data['idx'].item()
+    idx = batch['idx'].item()
 
     try:
         model_dict = dataset.get_model_dict(idx)
     except AttributeError:
         model_dict = {'model': str(idx), 'category': 'n/a'}
-    
+
     modelname = model_dict['model']
     category_id = model_dict['category']
 
@@ -99,10 +98,11 @@ for it, data in enumerate(tqdm(test_loader)):
         pointcloud_dir = os.path.join(pointcloud_dir, category_id)
 
     # Evaluate
-    pointcloud_tgt = data['pointcloud_chamfer'].squeeze(0).numpy()
-    normals_tgt = data['pointcloud_chamfer.normals'].squeeze(0).numpy()
-    points_tgt = data['points_iou'].squeeze(0).numpy()
-    occ_tgt = data['points_iou.occ'].squeeze(0).numpy()
+    pointcloud_tgt = tf.squeeze(batch['pointcloud_chamfer'], axis=0).numpy()
+    normals_tgt = tf.squeeze(
+        batch['pointcloud_chamfer.normals'], axis=0).numpy()
+    points_tgt = tf.squeeze(batch['points_iou'], axis=0).numpy()
+    occ_tgt = tf.squeeze(batch['points_iou.occ'], axis=0).numpy()
 
     # Evaluating mesh and pointcloud
     # Start row and put basic informatin inside
@@ -140,7 +140,7 @@ for it, data in enumerate(tqdm(test_loader)):
                 eval_dict[k + ' (pcl)'] = v
         else:
             print('Warning: pointcloud does not exist: %s'
-                    % pointcloud_file)
+                  % pointcloud_file)
 
 # Create pandas dataframe and save
 eval_df = pd.DataFrame(eval_dicts)
