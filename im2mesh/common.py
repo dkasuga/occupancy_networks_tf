@@ -293,13 +293,11 @@ def get_camera_args(data, loc_field=None, scale_field=None):
     if loc_field is not None:
         loc = data[loc_field]
     else:
-        # loc = torch.zeros(K.shape[0], 3, dtype=K.dtype)
         loc = tf.zeros([K.shape[0], 3], dtype=K.dtype)
 
     if scale_field is not None:
         scale = data[scale_field]
     else:
-        # scale = torch.zeros(K.size(0), device=K.device, dtype=K.dtype)
         scale = tf.zeros(K.shape[0], dtype=K.dtype)
 
     Rt = fix_Rt_camera(Rt, loc, scale)
