@@ -66,7 +66,7 @@ def visualize_voxels(voxels, out_file=None, show=False):
     # Create plot
     fig = plt.figure()
     ax = fig.gca(projection=Axes3D.name)
-    voxels = voxels.transpose(2, 0, 1)  # CHECK
+    voxels = voxels.transpose(2, 0, 1)
 
     ax.voxels(voxels, edgecolor="k")
     ax.set_xlabel("Z")
