@@ -1,10 +1,8 @@
 import argparse
 import os
 import pandas as pd
-import torch
-import numpy as np
 from tqdm import tqdm
-from im2mesh import config, data
+from im2mesh import config
 from im2mesh.checkpoints import CheckpointIO
 
 
@@ -12,13 +10,10 @@ parser = argparse.ArgumentParser(
     description='Evaluate mesh algorithms.'
 )
 parser.add_argument('config', type=str, help='Path to config file.')
-parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 
 # Get configuration and basic arguments
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
-is_cuda = (torch.cuda.is_available() and not args.no_cuda)
-device = torch.device("cuda" if is_cuda else "cpu")
 
 # Shorthands
 out_dir = cfg['training']['out_dir']
@@ -26,8 +21,12 @@ out_file = os.path.join(out_dir, 'eval_full.pkl')
 out_file_class = os.path.join(out_dir, 'eval.csv')
 
 # Dataset
-dataset = config.get_dataset('test', cfg, return_idx=True)
-model = config.get_model(cfg, device=device, dataset=dataset)
+dataset = config.get_dataset(
+    'test', cfg, batch_size=1, shuffle=False, repeat_count=1, epoch=1)
+# Loader
+dataloader = dataset.loader()
+
+model = config.get_model(cfg, dataset=dataset)
 
 checkpoint_io = CheckpointIO(out_dir, model=model)
 try:
@@ -37,27 +36,13 @@ except FileExistsError:
     exit()
 
 # Trainer
-trainer = config.get_trainer(model, None, cfg, device=device)
+trainer = config.get_trainer(model, None, cfg)
 
-# Print model
-nparameters = sum(p.numel() for p in model.parameters())
-print(model)
-print('Total number of parameters: %d' % nparameters)
-
-# Evaluate
-model.eval()
-
-eval_dicts = []   
+eval_dicts = []
 print('Evaluating networks...')
 
-
-test_loader = torch.utils.data.DataLoader(
-    dataset, batch_size=1, shuffle=False,
-    collate_fn=data.collate_remove_none,
-    worker_init_fn=data.worker_init_fn)
-
 # Handle each dataset separately
-for it, data in enumerate(tqdm(test_loader)):
+for it, data in enumerate(tqdm(dataloader)):
     if data is None:
         print('Invalid data.')
         continue
@@ -68,7 +53,7 @@ for it, data in enumerate(tqdm(test_loader)):
         model_dict = dataset.get_model_dict(idx)
     except AttributeError:
         model_dict = {'model': str(idx), 'category': 'n/a'}
-    
+
     modelname = model_dict['model']
     category_id = model_dict['category']
 
@@ -81,7 +66,7 @@ for it, data in enumerate(tqdm(test_loader)):
         'idx': idx,
         'class id': category_id,
         'class name': category_name,
-        'modelname':modelname,
+        'modelname': modelname,
     }
     eval_dicts.append(eval_dict)
     eval_data = trainer.eval_step(data)
