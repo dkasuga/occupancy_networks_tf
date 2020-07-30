@@ -99,35 +99,39 @@ def chamfer_distance_kdtree(points1, points2, give_id=False):
         give_id (bool): whether to return the IDs of the nearest points
     """
     # Points have size batch_size x T x 3
-    batch_size = points1.size(0)
+    batch_size = points1.shape[0]
 
     # First convert points to numpy
-    points1_np = points1.detach().cpu().numpy()
-    points2_np = points2.detach().cpu().numpy()
+    points1_np = points1.detach().numpy()
+    points2_np = points2.detach().numpy()
 
     # Get list of nearest neighbors indieces
     idx_nn_12, _ = get_nearest_neighbors_indices_batch(points1_np, points2_np)
-    idx_nn_12 = torch.LongTensor(idx_nn_12).to(points1.device)
+    idx_nn_12 = tf.constant(idx_nn_12, dtype=tf.int64)
     # Expands it as batch_size x 1 x 3
-    idx_nn_12_expand = idx_nn_12.view(batch_size, -1, 1).expand_as(points1)
+    idx_nn_12_expand = tf.broadcast_to(tf.reshape(
+        idx_nn_12, shape=[batch_size, -1, 1]), shape=points1.shape)
 
     # Get list of nearest neighbors indieces
     idx_nn_21, _ = get_nearest_neighbors_indices_batch(points2_np, points1_np)
-    idx_nn_21 = torch.LongTensor(idx_nn_21).to(points1.device)
+    idx_nn_21 = tf.constant(idx_nn_21, dtype=tf.int64)
     # Expands it as batch_size x T x 3
-    idx_nn_21_expand = idx_nn_21.view(batch_size, -1, 1).expand_as(points2)
+    idx_nn_21_expand = tf.broadcast_to(tf.reshape(
+        idx_nn_21, shape=[batch_size, -1, 1]), shape=points2.shape)
 
     # Compute nearest neighbors in points2 to points in points1
     # points_12[i, j, k] = points2[i, idx_nn_12_expand[i, j, k], k]
-    points_12 = torch.gather(points2, dim=1, index=idx_nn_12_expand)
+    points_12 = tf.gather(points2, indices=idx_nn_12_expand, batch_dims=1)
 
     # Compute nearest neighbors in points1 to points in points2
     # points_21[i, j, k] = points2[i, idx_nn_21_expand[i, j, k], k]
-    points_21 = torch.gather(points1, dim=1, index=idx_nn_21_expand)
+    points_21 = tf.gather(points1, indices=idx_nn_21_expand, batch_dims=1)
 
     # Compute chamfer distance
-    chamfer1 = (points1 - points_12).pow(2).sum(2).mean(1)
-    chamfer2 = (points2 - points_21).pow(2).sum(2).mean(1)
+    chamfer1 = tf.math.reduce_mean(tf.math.reduce_sum(tf.math.pow(
+        points1 - points_12, 2), axis=2), axis=1)
+    chamfer2 = tf.math.reduce_mean(tf.math.reduce_sum(tf.math.pow(
+        points2 - points_21, 2), axis=2), axis=1)
 
     # Take sum
     chamfer = chamfer1 + chamfer2
@@ -203,7 +207,6 @@ def make_3d_grid(bb_min, bb_max, shape):
     return p
 
 
-# pytorch -> tensorflow
 def transform_points(points, transform):
     """ Transforms points with regard to passed camera information.
 
@@ -235,8 +238,9 @@ def b_inv(b_mat):
         b_mat: the batch of matrices that should be inverted
     """
 
-    eye = b_mat.new_ones(b_mat.size(-1)).diag().expand_as(b_mat)
-    b_inv, _ = torch.gesv(eye, b_mat)
+    eye = tf.broadcast_to(tf.linalg.diag(
+        tf.ones(shape=b_mat.shape[-1], dtype=b_mat.dtype)), shape=b_mat.shape)
+    b_inv = tf.linalg.solve(b_mat, eye)
     return b_inv
 
 
