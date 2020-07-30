@@ -17,8 +17,6 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument('config', type=str, help='Path to config file.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
-parser.add_argument('--gpu', type=int, default=0,
-                    help='Assign gpu device id you want to use. ')
 parser.add_argument('--exit-after', type=int, default=-1,
                     help='Checkpoint and exit after specified number of seconds'
                          'with exit code 2.')
@@ -50,17 +48,22 @@ if not os.path.exists(out_dir):
 
 # Dataset
 # specify path
-train_loader = config.get_dataset(
-    'train', cfg, batch_size=batch_size, shuffle=True, repeat_count=1, epoch=100).loader()
-val_loader = config.get_dataset(
-    'val', cfg, batch_size=10, shuffle=False, repeat_count=1, epoch=1).loader()
-vis_loader = config.get_dataset(
-    'val', cfg, batch_size=12, shuffle=False, repeat_count=1, epoch=1).loader()
+
+train_dataset = config.get_dataset(
+    'train', cfg, batch_size=batch_size, shuffle=True, repeat_count=1, epoch=100)
+val_dataset = config.get_dataset(
+    'val', cfg, batch_size=10, shuffle=False, repeat_count=1, epoch=1)
+vis_dataset = config.get_dataset(
+    'val', cfg, batch_size=12, shuffle=False, repeat_count=1, epoch=1)
+
+train_loader = train_dataset.loader()
+val_loader = val_dataset.loader()
+vis_loader = vis_dataset.loader()
 
 data_vis = next(iter(vis_loader))
 
 # Model
-model = config.get_model(cfg, dataset=train_loader)
+model = config.get_model(cfg, dataset=train_dataset)
 
 # Intialize training
 npoints = 1000

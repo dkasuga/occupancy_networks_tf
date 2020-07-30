@@ -29,7 +29,7 @@ class Generator3D(object):
     '''
 
     def __init__(self, model, points_batch_size=100000,
-                 threshold=0.5, refinement_step=0, device=None,
+                 threshold=0.5, refinement_step=0,
                  resolution0=16, upsampling_steps=3,
                  with_normals=False, padding=0.1, sample=False,
                  simplify_nfaces=None,
