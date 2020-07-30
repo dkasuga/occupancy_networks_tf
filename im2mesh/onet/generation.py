@@ -34,7 +34,7 @@ class Generator3D(object):
                  with_normals=False, padding=0.1, sample=False,
                  simplify_nfaces=None,
                  preprocessor=None):
-        self.model = model.to(device)
+        self.model = model
         self.points_batch_size = points_batch_size
         self.refinement_step = refinement_step
         self.threshold = threshold
@@ -52,8 +52,7 @@ class Generator3D(object):
             data (tensor): data tensor
             return_stats (bool): whether stats should be returned
         '''
-        # self.model.eval() // training= true
-        self.model.trainable = False  # TODO CHECK
+        self.model.trainable = False  # TODO: CHECK
         stats_dict = {}
 
         inputs = data.get('inputs', tf.zeros([1, 0]))
@@ -67,7 +66,7 @@ class Generator3D(object):
 
         # Encode inputs
         t0 = time.time()
-        c = self.model.encode_inputs(inputs)
+        c = self.model.encode_inputs(inputs, training=False)
         stats_dict['time (encode inputs)'] = time.time() - t0
 
         z = self.model.get_z_from_prior((1,), sample=self.sample)

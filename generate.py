@@ -1,7 +1,5 @@
-import torch
 import tensorflow as tf
 
-# import torch.distributions as dist
 import os
 import shutil
 import argparse
@@ -50,7 +48,6 @@ checkpoint_io = CheckpointIO(model, checkpoint_dir=out_dir)
 # checkpoint_io.load(cfg['test']['model_file'])
 model = checkpoint_io.load(cfg["test"]["model_file"])  # CHECK
 
-
 # Generator
 generator = config.get_generator(model, cfg)
 
@@ -67,10 +64,6 @@ if generate_pointcloud and not hasattr(generator, "generate_pointcloud"):
     print("Warning: generator does not support pointcloud generation.")
 
 
-# Loader
-# test_loader = torch.utils.data.DataLoader(
-#     dataset, batch_size=1, num_workers=0, shuffle=False
-# )
 # Statistics
 time_dicts = []
 
