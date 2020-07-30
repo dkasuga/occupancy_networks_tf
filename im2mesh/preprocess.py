@@ -4,9 +4,6 @@ import numpy as np
 from im2mesh import config
 from im2mesh.checkpoints import CheckpointIO
 from im2mesh.utils.io import export_pointcloud
-'''
-TODO: pytorch codes -> tensorflow
-'''
 
 
 class PSGNPreprocessor:
