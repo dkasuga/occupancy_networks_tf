@@ -46,7 +46,7 @@ class PSGNPreprocessor:
             idx = np.random.randint(low=0,
                                     high=T,
                                     size=(batch_size, self.pointcloud_n))
-            idx = tf.convert_to_tensor([:, :, None])
+            idx = tf.convert_to_tensor(idx[:, :, None])
             idx = tf.broadcast_to(
                 idx, shape=[batch_size, self.pointcloud_n, 3])
             points = tf.gather(points, indices=idx, batch_dims=1)
