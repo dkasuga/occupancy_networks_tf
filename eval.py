@@ -1,3 +1,18 @@
+# Copyright 2020 The TensorFlow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+""" NO COMMENT NOW"""
+
 import argparse
 import os
 import pandas as pd
@@ -28,12 +43,12 @@ dataloader = dataset.loader()
 
 model = config.get_model(cfg, dataset=dataset)
 
-checkpoint_io = CheckpointIO(out_dir, model=model)
+checkpoint_io = CheckpointIO(model=model, checkpoint_dir=out_dir)
 try:
-    checkpoint_io.load(cfg['test']['model_file'])
+  checkpoint_io.load(cfg['test']['model_file'])
 except FileExistsError:
-    print('Model file does not exist. Exiting.')
-    exit()
+  print('Model file does not exist. Exiting.')
+  exit()
 
 # Trainer
 trainer = config.get_trainer(model, None, cfg)
@@ -43,34 +58,34 @@ print('Evaluating networks...')
 
 # Handle each dataset separately
 for it, data in enumerate(tqdm(dataloader)):
-    if data is None:
-        print('Invalid data.')
-        continue
-    # Get index etc.
-    idx = data['idx'].item()
+  if data is None:
+    print('Invalid data.')
+    continue
+  # Get index etc.
+  idx = data['idx'].item()
 
-    try:
-        model_dict = dataset.get_model_dict(idx)
-    except AttributeError:
-        model_dict = {'model': str(idx), 'category': 'n/a'}
+  try:
+    model_dict = dataset.get_model_dict(idx)
+  except AttributeError:
+    model_dict = {'model': str(idx), 'category': 'n/a'}
 
-    modelname = model_dict['model']
-    category_id = model_dict['category']
+  modelname = model_dict['model']
+  category_id = model_dict['category']
 
-    try:
-        category_name = dataset.metadata[category_id].get('name', 'n/a')
-    except AttributeError:
-        category_name = 'n/a'
+  try:
+    category_name = dataset.metadata[category_id].get('name', 'n/a')
+  except AttributeError:
+    category_name = 'n/a'
 
-    eval_dict = {
-        'idx': idx,
-        'class id': category_id,
-        'class name': category_name,
-        'modelname': modelname,
-    }
-    eval_dicts.append(eval_dict)
-    eval_data = trainer.eval_step(data)
-    eval_dict.update(eval_data)
+  eval_dict = {
+      'idx': idx,
+      'class id': category_id,
+      'class name': category_name,
+      'modelname': modelname,
+  }
+  eval_dicts.append(eval_dict)
+  eval_data = trainer.eval_step(data)
+  eval_dict.update(eval_data)
 
 
 # Create pandas dataframe and save
