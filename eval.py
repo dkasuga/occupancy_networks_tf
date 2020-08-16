@@ -16,6 +16,7 @@
 import argparse
 import os
 import pandas as pd
+import tensorflow as tf
 from tqdm import tqdm
 from im2mesh import config
 from im2mesh.checkpoints import CheckpointIO
@@ -42,8 +43,10 @@ dataset = config.get_dataset(
 dataloader = dataset.loader()
 
 model = config.get_model(cfg, dataset=dataset)
+dummy_optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, epsilon=1e-08)
 
-checkpoint_io = CheckpointIO(model=model, checkpoint_dir=out_dir)
+checkpoint_io = CheckpointIO(model, dummy_optimizer, checkpoint_dir=out_dir)
+
 try:
   checkpoint_io.load(cfg['test']['model_file'])
 except FileExistsError:
@@ -62,7 +65,8 @@ for it, data in enumerate(tqdm(dataloader)):
     print('Invalid data.')
     continue
   # Get index etc.
-  idx = data['idx'].item()
+  # idx = data['idx'].item()
+  idx = it
 
   try:
     model_dict = dataset.get_model_dict(idx)

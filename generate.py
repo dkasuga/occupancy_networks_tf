@@ -56,11 +56,11 @@ dataset = config.get_dataset(
 dataloader = dataset.loader()
 
 model = config.get_model(cfg, dataset=dataset)
+dummy_optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, epsilon=1e-08)
 
-checkpoint_io = CheckpointIO(model, checkpoint_dir=out_dir)
+checkpoint_io = CheckpointIO(model, dummy_optimizer, checkpoint_dir=out_dir)
 
-# checkpoint_io.load(cfg['test']['model_file'])
-checkpoint_io.load(cfg["test"]["model_file"])  # CHECK
+checkpoint_io.load(cfg['test']['model_file'])
 
 # Generator
 generator = config.get_generator(model, cfg)
@@ -93,7 +93,8 @@ for it, data in enumerate(tqdm(dataloader)):
   generation_vis_dir = os.path.join(generation_dir, "vis",)
 
   # Get index etc.
-  idx = data["idx"].item()
+  # idx = data["idx"].item()
+  idx = it
 
   try:
     model_dict = dataset.get_model_dict(idx)

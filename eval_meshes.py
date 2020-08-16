@@ -65,7 +65,7 @@ print('Test split: ', cfg['data']['test_split'])
 dataset_folder = cfg['data']['path']
 dataset = data.Shapes3dDataset(
     dataset_folder, fields,
-    cfg['data']['test_split'], batch_size=2,
+    cfg['data']['test_split'], batch_size=1,
     shuffle=False, repeat_count=1, epoch=1,
     categories=cfg['data']['classes'])
 
@@ -113,8 +113,6 @@ for it, batch in enumerate(tqdm(dataloader)):
     pointcloud_dir = os.path.join(pointcloud_dir, category_id)
 
   # Evaluate
-  print("batch['pointcloud_chamfer]:{}".format(
-      batch['pointcloud_chamfer'].shape))
   pointcloud_tgt = tf.squeeze(batch['pointcloud_chamfer'], axis=0).numpy()
   normals_tgt = tf.squeeze(
       batch['pointcloud_chamfer.normals'], axis=0).numpy()
