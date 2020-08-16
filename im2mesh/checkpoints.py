@@ -32,7 +32,7 @@ class CheckpointIO(object):
       checkpoint_dir (str): path where checkpoints are saved
   """
 
-  def __init__(self, model, optimizer=None, model_selection_sign=1,
+  def __init__(self, model, optimizer, model_selection_sign=1,
                checkpoint_dir="./chkpts"):
     self.ckpt = tf.train.Checkpoint(
         model=model, optimizer=optimizer, epoch_it=tf.Variable(
@@ -71,6 +71,7 @@ class CheckpointIO(object):
     if filename is not None:
       if not os.path.isabs(filename):
         filename = os.path.join(self.checkpoint_dir, filename)
+        filename = tf.train.latest_checkpoint(filename)
     else:
       filename = tf.train.latest_checkpoint(self.checkpoint_dir)
 
