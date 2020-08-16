@@ -60,7 +60,7 @@ model = config.get_model(cfg, dataset=dataset)
 checkpoint_io = CheckpointIO(model, checkpoint_dir=out_dir)
 
 # checkpoint_io.load(cfg['test']['model_file'])
-model = checkpoint_io.load(cfg["test"]["model_file"])  # CHECK
+checkpoint_io.load(cfg["test"]["model_file"])  # CHECK
 
 # Generator
 generator = config.get_generator(model, cfg)
