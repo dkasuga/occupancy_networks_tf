@@ -28,9 +28,9 @@ training:
   out_dir:  out/pointcloud/dmc
   batch_size: 8
   print_every: 10
-  visualize_every: 2000 
-  checkpoint_every: 500 
-  validate_every: 2000 
+  visualize_every: 2000
+  checkpoint_every: 500
+  validate_every: 2000
   backup_every: 10000
   eval_sample: false
   model_selection_metric: loss
@@ -38,8 +38,8 @@ training:
 test:
   threshold: 0.5
   eval_mesh: true
-  eval_pointcloud: false 
-  model_file: model_best.pt
+  eval_pointcloud: false
+  model_file: model_best.ckpt
 generation:
   dataset: same
   batch_size: 100000
