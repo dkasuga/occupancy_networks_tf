@@ -53,7 +53,7 @@ test:
   threshold: 0.5
   eval_mesh: true
   eval_pointcloud: true
-  model_file: model_best.ckpt
+  model_file: model_best
 generation:
   batch_size: 100000
   refinement_step: 0

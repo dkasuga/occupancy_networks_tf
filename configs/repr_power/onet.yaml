@@ -20,11 +20,11 @@ training:
   out_dir:  out/repr_power/onet
   batch_size: 64
   visualize_every: 2000
-  validate_every: 2000 
+  validate_every: 2000
   model_selection_metric: iou
   model_selection_mode: maximize
 test:
-  model_file: model.pt
+  model_file: model.ckpt
   threshold: 0.5
   eval_mesh: true
 generation:
