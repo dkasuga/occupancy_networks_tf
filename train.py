@@ -89,7 +89,7 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, epsilon=1e-08)
 checkpoint_io = CheckpointIO(model, optimizer, model_selection_sign, out_dir)
 
 try:
-  checkpoint_io.load()
+  checkpoint_io.load('model')
 except FileExistsError:
   print("start from scratch")
 
@@ -140,7 +140,6 @@ while True:
   # scheduler.step()
 
   for batch in train_loader:
-    # it += 1
     it.assign_add(1)
     loss = trainer.train_step(batch)
     # logger.add_scalar('train/loss', loss, it)
@@ -159,12 +158,12 @@ while True:
     # Save checkpoint
     if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
       print('Saving checkpoint')
-      checkpoint_io.save('model.ckpt', epoch_it=epoch_it, it=it,
+      checkpoint_io.save('model/model.ckpt', epoch_it=epoch_it, it=it,
                          loss_val_best=metric_val_best)
     # Backup if necessary
     if (backup_every > 0 and (it % backup_every) == 0):
       print('Backup checkpoint')
-      checkpoint_io.save('model_%d.ckpt' % it, epoch_it=epoch_it, it=it,
+      checkpoint_io.save('backup/model_%d.ckpt' % it, epoch_it=epoch_it, it=it,
                          loss_val_best=metric_val_best)
     # Run validation
     if validate_every > 0 and (it % validate_every) == 0:
@@ -174,19 +173,18 @@ while True:
       metric_val = eval_dict[model_selection_metric]
       print('validation metric (%s): %.4f'
             % (model_selection_metric, metric_val))
-
       # for k, v in eval_dict.items():
       # logger.add_scalar('val/%s' % k, v, it)
-
+      print("metric_val_best:{}".format(metric_val_best))
       if model_selection_sign * (metric_val - metric_val_best) > 0:
-        metric_val_best = metric_val
+        metric_val_best.assign(metric_val)
         print('New best model (loss %.4f)' % metric_val_best)
-        checkpoint_io.save('model_best.ckpt', epoch_it=epoch_it, it=it,
+        checkpoint_io.save('model_best/model_best.ckpt', epoch_it=epoch_it, it=it,
                            loss_val_best=metric_val_best)
 
     # Exit if necessary
     if exit_after > 0 and (time.time() - t0) >= exit_after:
       print('Time limit reached. Exiting.')
-      checkpoint_io.save('model.ckpt', epoch_it=epoch_it, it=it,
+      checkpoint_io.save('model/model.ckpt', epoch_it=epoch_it, it=it,
                          loss_val_best=metric_val_best)
       exit(3)
