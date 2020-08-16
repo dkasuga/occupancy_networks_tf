@@ -92,7 +92,7 @@ for it, batch in enumerate(tqdm(dataloader)):
     pointcloud_dir = os.path.join(generation_dir, 'input')
 
   # Get index etc.
-  idx = batch['idx'].item()
+  idx = batch['idx']
 
   try:
     model_dict = dataset.get_model_dict(idx)
