@@ -146,16 +146,22 @@ class Generator3D(object):
         z (tensor): latent code z
         c (tensor): latent conditioned code c
     '''
-    p_split = tf.split(p, self.points_batch_size)
-    occ_hats = []
+    p = tf.expand_dims(p, 0)
+    occ_hat = self.model.decode(p, z, c, **kwargs).logits
+    occ_hat = tf.squeeze(occ_hat, axis=0)
 
-    for pi in p_split:
-      pi = tf.expand_dims(pi, 0)
-      occ_hat = self.model.decode(pi, z, c, **kwargs).logits
+    # TODO:
+    # tf.split can't separate a tensor by numbers that can't divide tensor's dim. that is a problem.
+    # p_split = tf.split(p, self.points_batch_size)
+    # occ_hats = []
 
-      occ_hats.append(tf.squeeze(occ_hat, 0))
+    # for pi in p_split:
+    #   pi = tf.expand_dims(pi, 0)
+    #   occ_hat = self.model.decode(pi, z, c, **kwargs).logits
 
-    occ_hat = tf.concat(occ_hats, axis=0)
+    #   occ_hats.append(tf.squeeze(occ_hat, 0))
+
+    # occ_hat = tf.concat(occ_hats, axis=0)
 
     return occ_hat
 
