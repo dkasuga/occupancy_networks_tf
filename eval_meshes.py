@@ -60,15 +60,15 @@ fields = {
 
 print('Test split: ', cfg['data']['test_split'])
 
+
+# Dataset
 dataset_folder = cfg['data']['path']
 dataset = data.Shapes3dDataset(
     dataset_folder, fields,
-    cfg['data']['test_split'],
+    cfg['data']['test_split'], batch_size=2,
+    shuffle=False, repeat_count=1, epoch=1,
     categories=cfg['data']['classes'])
 
-# Dataset
-dataset = config.get_dataset(
-    'test', cfg, batch_size=1, shuffle=False, repeat_count=1, epoch=1)
 # Loader
 dataloader = dataset.loader()
 
@@ -92,7 +92,8 @@ for it, batch in enumerate(tqdm(dataloader)):
     pointcloud_dir = os.path.join(generation_dir, 'input')
 
   # Get index etc.
-  idx = batch['idx']
+  # idx = batch['idx']
+  idx = it
 
   try:
     model_dict = dataset.get_model_dict(idx)
@@ -112,6 +113,8 @@ for it, batch in enumerate(tqdm(dataloader)):
     pointcloud_dir = os.path.join(pointcloud_dir, category_id)
 
   # Evaluate
+  print("batch['pointcloud_chamfer]:{}".format(
+      batch['pointcloud_chamfer'].shape))
   pointcloud_tgt = tf.squeeze(batch['pointcloud_chamfer'], axis=0).numpy()
   normals_tgt = tf.squeeze(
       batch['pointcloud_chamfer.normals'], axis=0).numpy()
