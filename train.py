@@ -23,7 +23,6 @@ import matplotlib
 from im2mesh import config
 from im2mesh.checkpoints import CheckpointIO
 
-# from tensorboardX import SummaryWriter
 matplotlib.use('Agg')
 
 # Arguments
@@ -97,29 +96,14 @@ epoch_it = checkpoint_io.ckpt.epoch_it
 it = checkpoint_io.ckpt.it
 metric_val_best = checkpoint_io.ckpt.metric_val_best
 
-
-# epoch_it = load_dict.get('epoch_it', -1)
-# it = load_dict.get('it', -1)
-# metric_val_best = load_dict.get(
-#     'loss_val_best', -model_selection_sign * np.inf)
-
 trainer = config.get_trainer(model, optimizer, cfg)
 
 # Hack because of previous bug in code
-# TODO: remove, because shouldn't be necessary
 if metric_val_best == np.inf or metric_val_best == -np.inf:
   metric_val_best = -model_selection_sign * np.inf
 
-# TODO: remove this switch
-# metric_val_best = -model_selection_sign * np.inf
-
 print('Current best validation metric (%s): %.8f' %
       (model_selection_metric, metric_val_best))
-
-# TODO: reintroduce or remove scheduler?
-# scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=4000,
-#                                       gamma=0.1, last_epoch=epoch_it)
-# logger = SummaryWriter(os.path.join(out_dir, 'logs'))
 
 # Shorthands
 print_every = cfg['training']['print_every']
@@ -135,14 +119,11 @@ train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
 while True:
-  # epoch_it += 1
   epoch_it.assign_add(1)
-  # scheduler.step()
 
   for batch in train_loader:
     it.assign_add(1)
     loss = trainer.train_step(batch)
-    # logger.add_scalar('train/loss', loss, it)
 
     # Print output
     if print_every > 0 and (it % print_every) == 0:
@@ -151,9 +132,9 @@ while True:
         tf.summary.scalar('loss', loss, step=it)
 
     # Visualize output
-    # if visualize_every > 0 and (it % visualize_every) == 0:
-    #     print('Visualizing')
-    #     trainer.visualize(data_vis)
+    if visualize_every > 0 and (it % visualize_every) == 0:
+      print('Visualizing')
+      trainer.visualize(data_vis)
 
     # Save checkpoint
     if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
@@ -173,8 +154,10 @@ while True:
       metric_val = eval_dict[model_selection_metric]
       print('validation metric (%s): %.4f'
             % (model_selection_metric, metric_val))
-      # for k, v in eval_dict.items():
-      # logger.add_scalar('val/%s' % k, v, it)
+      for k, v in eval_dict.items():
+        with test_summary_writer.as_default():
+          tf.summary.scalar('val/%s' % k, v, step=it)
+
       print("metric_val_best:{}".format(metric_val_best))
       if model_selection_sign * (metric_val - metric_val_best) > 0:
         metric_val_best.assign(metric_val)
