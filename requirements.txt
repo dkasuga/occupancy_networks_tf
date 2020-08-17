@@ -12,3 +12,4 @@ plyfile==0.7
 pyembree==0.1.4
 pytest==4.0.2
 h5py==2.9.0
+pyyaml==3.13
